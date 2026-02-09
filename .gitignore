@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.cdx.json
+!test/fixtures/**/*.json
+.DS_Store
