@@ -1,0 +1,78 @@
+# Bitbucket Pipelines configuration for Verimu
+#
+# Runs tests on Node.js 20, then self-scans to generate
+# a CRA-compliant SBOM of the verimu project itself.
+
+image: node:20
+
+definitions:
+  caches:
+    npm: node_modules
+
+pipelines:
+  default:
+    - step:
+        name: Test (Node.js 20)
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run build:check
+          - npm test
+          - npm run build
+
+    - step:
+        name: Test (Node.js 22)
+        image: node:22
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run build:check
+          - npm test
+          - npm run build
+
+    - step:
+        name: Self-scan (SBOM generation)
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run build
+          - node scripts/run-scan.mjs
+        artifacts:
+          - test-sbom.keep.cdx.json
+
+  branches:
+    main:
+      - step:
+          name: Test (Node.js 20)
+          caches:
+            - npm
+          script:
+            - npm ci
+            - npm run build:check
+            - npm test
+            - npm run build
+
+      - step:
+          name: Test (Node.js 22)
+          image: node:22
+          caches:
+            - npm
+          script:
+            - npm ci
+            - npm run build:check
+            - npm test
+            - npm run build
+
+      - step:
+          name: Self-scan (SBOM generation)
+          caches:
+            - npm
+          script:
+            - npm ci
+            - npm run build
+            - node scripts/run-scan.mjs
+          artifacts:
+            - test-sbom.keep.cdx.json

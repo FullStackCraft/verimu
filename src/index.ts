@@ -43,6 +43,12 @@ export {
 // For users who need fine-grained control over individual steps.
 
 export { NpmScanner } from './scanners/npm/npm-scanner.js';
+export { NugetScanner } from './scanners/nuget/nuget-scanner.js';
+export { PipScanner } from './scanners/pip/pip-scanner.js';
+export { CargoScanner } from './scanners/cargo/cargo-scanner.js';
+export { MavenScanner } from './scanners/maven/maven-scanner.js';
+export { GoScanner } from './scanners/go/go-scanner.js';
+export { RubyScanner } from './scanners/ruby/ruby-scanner.js';
 export { ScannerRegistry } from './scanners/registry.js';
 export { CycloneDxGenerator } from './sbom/cyclonedx.js';
 export { OsvSource } from './cve/osv.js';

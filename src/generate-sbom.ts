@@ -116,6 +116,7 @@ const PURL_TYPE_MAP: Record<Ecosystem, string> = {
   maven: 'maven',
   pip: 'pypi',
   go: 'golang',
+  ruby: 'gem',
 };
 
 /**

@@ -1,0 +1,94 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "abc123def456789012345678901234567890abcdef"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.12"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "django": {
+            "version": "==5.0.1",
+            "hashes": [
+                "sha256:abc123"
+            ]
+        },
+        "djangorestframework": {
+            "version": "==3.14.0",
+            "hashes": [
+                "sha256:def456"
+            ]
+        },
+        "celery": {
+            "version": "==5.3.6",
+            "hashes": [
+                "sha256:ghi789"
+            ]
+        },
+        "redis": {
+            "version": "==5.0.1",
+            "hashes": [
+                "sha256:jkl012"
+            ]
+        },
+        "psycopg2-binary": {
+            "version": "==2.9.9",
+            "hashes": [
+                "sha256:mno345"
+            ]
+        },
+        "gunicorn": {
+            "version": "==21.2.0",
+            "hashes": [
+                "sha256:pqr678"
+            ]
+        },
+        "boto3": {
+            "version": "==1.34.25",
+            "hashes": [
+                "sha256:stu901"
+            ]
+        },
+        "pydantic": {
+            "version": "==2.5.3",
+            "hashes": [
+                "sha256:vwx234"
+            ]
+        },
+        "sentry-sdk": {
+            "version": "==1.40.0",
+            "hashes": [
+                "sha256:yza567"
+            ]
+        }
+    },
+    "develop": {
+        "pytest": {
+            "version": "==7.4.4",
+            "hashes": [
+                "sha256:test123"
+            ]
+        },
+        "pytest-django": {
+            "version": "==4.7.0",
+            "hashes": [
+                "sha256:test456"
+            ]
+        },
+        "coverage": {
+            "version": "==7.4.0",
+            "hashes": [
+                "sha256:test789"
+            ]
+        }
+    }
+}

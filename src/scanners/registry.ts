@@ -3,6 +3,10 @@ import type { ScanResult } from '../core/types.js';
 import { NpmScanner } from './npm/npm-scanner.js';
 import { NugetScanner } from './nuget/nuget-scanner.js';
 import { CargoScanner } from './cargo/cargo-scanner.js';
+import { PipScanner } from './pip/pip-scanner.js';
+import { MavenScanner } from './maven/maven-scanner.js';
+import { GoScanner } from './go/go-scanner.js';
+import { RubyScanner } from './ruby/ruby-scanner.js';
 import { NoLockfileError } from '../core/errors.js';
 
 /**
@@ -17,7 +21,10 @@ export class ScannerRegistry {
       new NpmScanner(),
       new NugetScanner(),
       new CargoScanner(),
-      // Add new scanners here as they're implemented
+      new PipScanner(),
+      new MavenScanner(),
+      new GoScanner(),
+      new RubyScanner(),
     ];
   }
 

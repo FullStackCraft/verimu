@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Newtonsoft.Json": {
+        "type": "Direct",
+        "resolved": "13.0.3",
+        "contentHash": "HoC3pUV4SN10zN67yCmLEFJBPo8v2GMnOdl0QW+f0s0"
+      },
+      "Serilog": {
+        "type": "Direct",
+        "resolved": "3.1.1",
+        "contentHash": "2xN3TcRFR4MJAB7aBqNqQdl0ZL7a5yFF5ldb3kkV3NM="
+      },
+      "Microsoft.EntityFrameworkCore": {
+        "type": "Direct",
+        "resolved": "8.0.1",
+        "contentHash": "ABC123XYZ456789012345678901234567890"
+      },
+      "Serilog.Sinks.Console": {
+        "type": "Transitive",
+        "resolved": "5.0.1",
+        "contentHash": "DEF456ABC789012345678901234567890123",
+        "dependencies": {
+          "Serilog": "[3.1.1, )"
+        }
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "GHI789DEF012345678901234567890123456",
+        "dependencies": {}
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "JKL012GHI345678901234567890123456789",
+        "dependencies": {}
+      }
+    }
+  }
+}

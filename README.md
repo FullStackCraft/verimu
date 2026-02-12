@@ -6,19 +6,24 @@ The NPM package for `verimu`, a tool for producing CRA-compliant SBOMs via CI / 
 
 [https://verimu.com](https://verimu.com)
 
-## Current and Planned Support
+## Supported CI / CD Platforms
 
-- [x] GitHub Actions
-- [ ] GitLab CI
-- [ ] Bitbucket Pipelines
+The core scanning pipeline is CI-agnostic — it works in any environment with Node.js 20+.
+Example CI configs are provided in the `ci-examples/` directory.
 
+- [x] GitHub Actions (`.github/workflows/test.yml`)
+- [x] GitLab CI (`ci-examples/gitlab-ci.yml`)
+- [x] Bitbucket Pipelines (`ci-examples/bitbucket-pipelines.yml`)
 
-## Currently Supported Package Managers
+## Supported Package Ecosystems
 
-- [x] npm
-- [ ] pip
-- [ ] go
-- [ ] cargo
+- [x] npm (package-lock.json)
+- [x] NuGet (packages.lock.json)
+- [x] pip (requirements.txt, Pipfile.lock)
+- [x] Cargo (Cargo.lock)
+- [x] Maven (pom.xml + dependency-tree.txt or `mvn` on PATH)
+- [x] Go (go.sum)
+- [x] Ruby (Gemfile.lock)
 
 ## Development
 
@@ -27,3 +32,14 @@ To run the tests, use:
 ```bash
 npm test
 ```
+
+## Maven Scanner Notes
+
+The Maven scanner needs resolved dependencies. Since Maven has no lockfile, it uses two strategies:
+
+1. **Pre-generated dependency tree** (recommended for CI): Run `mvn dependency:list -DoutputFile=dependency-tree.txt -DappendOutput=true` before scanning.
+2. **Auto-detect**: If `mvn` is on `$PATH`, the scanner runs `mvn dependency:list` automatically.
+
+## Three CI / CD Pipelines as Self Check on the `verimu` package itself
+
+There is a `bitbucket-pipelines.yml` and `.gitlab-ci.yml` in the root of the project, as well as a `.github/workflows/test.yml` file, all of which would run `verimu` against itself in each of the 3 frameworks we support (GitHub Actions, GitLab CI, Bitbucket Pipelines). The tests should pass in all 3 environments, confirming that `verimu` can successfully scan its own dependencies and produce a report.

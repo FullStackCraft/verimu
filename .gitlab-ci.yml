@@ -1,0 +1,54 @@
+# GitLab CI configuration for Verimu
+#
+# Runs tests on Node.js 20 & 22, then self-scans to generate
+# a CRA-compliant SBOM of the verimu project itself.
+
+stages:
+  - test
+  - scan
+
+# ─── Test Stage ──────────────────────────────────────────────────
+
+test:node-20:
+  stage: test
+  image: node:20
+  script:
+    - npm ci
+    - npm run build:check
+    - npm test
+    - npm run build
+  cache:
+    key: node-20-${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+test:node-22:
+  stage: test
+  image: node:22
+  script:
+    - npm ci
+    - npm run build:check
+    - npm test
+    - npm run build
+  cache:
+    key: node-22-${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+# ─── Self-scan: generate SBOM for verimu itself ─────────────────
+
+self-scan:
+  stage: scan
+  image: node:20
+  needs: ["test:node-20"]
+  script:
+    - npm ci
+    - npm run build
+    - node scripts/run-scan.mjs
+  artifacts:
+    paths:
+      - test-sbom.keep.cdx.json
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

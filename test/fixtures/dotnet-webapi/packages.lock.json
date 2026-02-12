@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Microsoft.AspNetCore.Authentication.JwtBearer": {
+        "type": "Direct",
+        "resolved": "8.0.2",
+        "contentHash": "real-hash-aspnet-jwt"
+      },
+      "Microsoft.EntityFrameworkCore.SqlServer": {
+        "type": "Direct",
+        "resolved": "8.0.2",
+        "contentHash": "real-hash-ef-sqlserver"
+      },
+      "Swashbuckle.AspNetCore": {
+        "type": "Direct",
+        "resolved": "6.5.0",
+        "contentHash": "real-hash-swashbuckle"
+      },
+      "Serilog.AspNetCore": {
+        "type": "Direct",
+        "resolved": "8.0.0",
+        "contentHash": "real-hash-serilog-aspnet"
+      },
+      "MediatR": {
+        "type": "Direct",
+        "resolved": "12.2.0",
+        "contentHash": "real-hash-mediatr"
+      },
+      "FluentValidation": {
+        "type": "Direct",
+        "resolved": "11.9.0",
+        "contentHash": "real-hash-fluentvalidation"
+      },
+      "AutoMapper": {
+        "type": "Direct",
+        "resolved": "13.0.1",
+        "contentHash": "real-hash-automapper"
+      },
+      "Microsoft.EntityFrameworkCore": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "real-hash-ef-core",
+        "dependencies": {
+          "Microsoft.Extensions.Logging": "8.0.0"
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Relational": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "real-hash-ef-relational",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "[8.0.2, )"
+        }
+      },
+      "Microsoft.Extensions.Logging": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "real-hash-logging"
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "real-hash-logging-abstractions"
+      },
+      "Microsoft.Extensions.DependencyInjection": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "real-hash-di"
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "real-hash-di-abstractions"
+      },
+      "Microsoft.Extensions.Configuration.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "real-hash-config-abstractions"
+      },
+      "Serilog": {
+        "type": "Transitive",
+        "resolved": "3.1.1",
+        "contentHash": "real-hash-serilog"
+      },
+      "Serilog.Sinks.Console": {
+        "type": "Transitive",
+        "resolved": "5.0.1",
+        "contentHash": "real-hash-serilog-console"
+      },
+      "System.IdentityModel.Tokens.Jwt": {
+        "type": "Transitive",
+        "resolved": "7.2.0",
+        "contentHash": "real-hash-jwt"
+      },
+      "Microsoft.IdentityModel.Tokens": {
+        "type": "Transitive",
+        "resolved": "7.2.0",
+        "contentHash": "real-hash-identity-tokens"
+      },
+      "MediatR.Contracts": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "real-hash-mediatr-contracts"
+      },
+      "Swashbuckle.AspNetCore.Swagger": {
+        "type": "Transitive",
+        "resolved": "6.5.0",
+        "contentHash": "real-hash-swagger-core"
+      }
+    }
+  }
+}
