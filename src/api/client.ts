@@ -121,6 +121,7 @@ export class VerimuApiClient {
       go: 'gomod',
       cargo: 'cargo',
       ruby: 'bundler',
+      composer: 'composer',
     };
     return map[eco] ?? eco;
   }

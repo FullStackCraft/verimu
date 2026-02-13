@@ -7,6 +7,7 @@ import { PipScanner } from './pip/pip-scanner.js';
 import { MavenScanner } from './maven/maven-scanner.js';
 import { GoScanner } from './go/go-scanner.js';
 import { RubyScanner } from './ruby/ruby-scanner.js';
+import { ComposerScanner } from './composer/composer-scanner.js';
 import { NoLockfileError } from '../core/errors.js';
 
 /**
@@ -25,6 +26,7 @@ export class ScannerRegistry {
       new MavenScanner(),
       new GoScanner(),
       new RubyScanner(),
+      new ComposerScanner(),
     ];
   }
 

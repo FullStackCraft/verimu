@@ -55,6 +55,7 @@ export { CargoScanner } from './scanners/cargo/cargo-scanner.js';
 export { MavenScanner } from './scanners/maven/maven-scanner.js';
 export { GoScanner } from './scanners/go/go-scanner.js';
 export { RubyScanner } from './scanners/ruby/ruby-scanner.js';
+export { ComposerScanner } from './scanners/composer/composer-scanner.js';
 export { ScannerRegistry } from './scanners/registry.js';
 export { CycloneDxGenerator } from './sbom/cyclonedx.js';
 export { OsvSource } from './cve/osv.js';

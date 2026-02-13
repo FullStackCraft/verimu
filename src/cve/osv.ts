@@ -207,6 +207,7 @@ export class OsvSource implements CveSource {
       pip: 'PyPI',
       go: 'Go',
       ruby: 'RubyGems',
+      composer: 'Packagist',
     };
     return map[ecosystem] ?? ecosystem;
   }

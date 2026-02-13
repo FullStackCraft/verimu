@@ -20,13 +20,16 @@
  */
 
 import { resolve } from 'path';
+import { createRequire } from 'module';
 import { scan, shouldFailCi, uploadToVerimu } from './scan.js';
 import { ConsoleReporter } from './reporters/console.js';
 import type { VerimuConfig, Severity, VerimuReport } from './core/types.js';
 
 // ─── Version & branding ─────────────────────────────────────────
 
-const VERSION = '0.0.3';
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version?: string };
+const VERSION = pkg.version ?? '0.0.0';
 
 const BRAND = `
   ╦  ╦┌─┐┬─┐┬┌┬┐┬ ┬
@@ -231,7 +234,7 @@ function printHelp(): void {
     npm (package-lock.json)         pip (requirements.txt)
     Maven (pom.xml)                 NuGet (packages.lock.json)
     Cargo (Cargo.lock)              Go (go.sum)
-    Ruby (Gemfile.lock)
+    Ruby (Gemfile.lock)             Composer (composer.lock)
 
   Learn more: https://verimu.com
   Dashboard: https://app.verimu.com

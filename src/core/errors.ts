@@ -12,7 +12,7 @@ export class NoLockfileError extends VerimuError {
     super(
       `No supported lockfile found in ${projectPath}. ` +
         `Supported: package-lock.json (npm), packages.lock.json (NuGet), ` +
-        `Cargo.lock (Rust), requirements.txt / Pipfile.lock (Python), pom.xml (Maven), go.sum (Go), Gemfile.lock (Ruby)`,
+        `Cargo.lock (Rust), requirements.txt / Pipfile.lock (Python), pom.xml (Maven), go.sum (Go), Gemfile.lock (Ruby), composer.lock (Composer)`,
       'NO_LOCKFILE'
     );
     this.name = 'NoLockfileError';
