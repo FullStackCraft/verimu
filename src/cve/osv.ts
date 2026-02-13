@@ -15,6 +15,9 @@ const BATCH_SIZE = 1000; // OSV querybatch supports up to 1000
  * - Aggregates data from GitHub Advisory, NVD, and others
  *
  * API docs: https://google.github.io/osv.dev/api/
+ *
+ * Note: /v1/querybatch only returns minimal data (id, modified).
+ * Full vulnerability details must be fetched via /v1/vulns/{id}.
  */
 export class OsvSource implements CveSource {
   readonly sourceId: VulnerabilitySource = 'osv';
@@ -42,7 +45,10 @@ export class OsvSource implements CveSource {
     return allVulns;
   }
 
-  /** Uses OSV's /querybatch endpoint for efficient bulk lookups */
+  /**
+   * Uses OSV's /querybatch endpoint to get vulnerability IDs,
+   * then fetches full details for each unique vulnerability.
+   */
   private async queryBatch(dependencies: Dependency[]): Promise<Vulnerability[]> {
     const queries = dependencies.map((dep) => ({
       version: dep.version,
@@ -63,21 +69,83 @@ export class OsvSource implements CveSource {
     }
 
     const data = (await response.json()) as OsvBatchResponse;
-    const vulnerabilities: Vulnerability[] = [];
 
-    // Each result in `results` corresponds to the query at the same index
+    // Collect unique vuln IDs and track which dependencies they affect
+    const vulnIdToDeps = new Map<string, Dependency[]>();
+
     for (let i = 0; i < data.results.length; i++) {
       const result = data.results[i];
       const dep = dependencies[i];
 
       if (result.vulns && result.vulns.length > 0) {
         for (const vuln of result.vulns) {
-          vulnerabilities.push(this.mapVulnerability(vuln, dep));
+          const existing = vulnIdToDeps.get(vuln.id);
+          if (existing) {
+            existing.push(dep);
+          } else {
+            vulnIdToDeps.set(vuln.id, [dep]);
+          }
         }
       }
     }
 
+    if (vulnIdToDeps.size === 0) {
+      return [];
+    }
+
+    // Fetch full details for each unique vulnerability
+    const vulnIds = Array.from(vulnIdToDeps.keys());
+    const fullVulns = await this.fetchVulnerabilityDetails(vulnIds);
+
+    // Map full vulnerability data to our format, linking to affected deps
+    const vulnerabilities: Vulnerability[] = [];
+
+    for (const osvVuln of fullVulns) {
+      const affectedDeps = vulnIdToDeps.get(osvVuln.id) ?? [];
+      for (const dep of affectedDeps) {
+        vulnerabilities.push(this.mapVulnerability(osvVuln, dep));
+      }
+    }
+
     return vulnerabilities;
+  }
+
+  /**
+   * Fetches full vulnerability details from /v1/vulns/{id} for each ID.
+   * Makes parallel requests for efficiency.
+   */
+  private async fetchVulnerabilityDetails(vulnIds: string[]): Promise<OsvVulnerability[]> {
+    const results: OsvVulnerability[] = [];
+
+    // Fetch in parallel with a reasonable concurrency limit
+    const CONCURRENCY = 10;
+    for (let i = 0; i < vulnIds.length; i += CONCURRENCY) {
+      const batch = vulnIds.slice(i, i + CONCURRENCY);
+      const promises = batch.map(async (id) => {
+        try {
+          const response = await this.fetchFn(`${OSV_API_BASE}/vulns/${encodeURIComponent(id)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (!response.ok) {
+            // Log but don't fail the entire scan for individual vuln fetch errors
+            console.warn(`Failed to fetch vulnerability ${id}: ${response.status}`);
+            return null;
+          }
+
+          return (await response.json()) as OsvVulnerability;
+        } catch (err) {
+          console.warn(`Error fetching vulnerability ${id}:`, err);
+          return null;
+        }
+      });
+
+      const batchResults = await Promise.all(promises);
+      results.push(...batchResults.filter((v): v is OsvVulnerability => v !== null));
+    }
+
+    return results;
   }
 
   /** Maps an OSV vulnerability record to our Vulnerability type */
@@ -215,12 +283,20 @@ export class OsvSource implements CveSource {
 
 // ─── OSV API Response Types ─────────────────────────────────────
 
+/** Response from /v1/querybatch - returns minimal vuln info (just id and modified) */
 interface OsvBatchResponse {
   results: Array<{
-    vulns?: OsvVulnerability[];
+    vulns?: OsvBatchVuln[];
   }>;
 }
 
+/** Minimal vulnerability info returned by /v1/querybatch */
+interface OsvBatchVuln {
+  id: string;
+  modified?: string;
+}
+
+/** Full vulnerability details from /v1/vulns/{id} */
 interface OsvVulnerability {
   id: string;
   summary?: string;
