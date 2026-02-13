@@ -1,17 +1,28 @@
 import { writeFile } from 'fs/promises';
+import { basename } from 'path';
 import { ScannerRegistry } from './scanners/registry.js';
 import { CycloneDxGenerator } from './sbom/cyclonedx.js';
 import { CveAggregator } from './cve/aggregator.js';
 import { ConsoleReporter } from './reporters/console.js';
+import { VerimuApiClient } from './api/client.js';
 import type { VerimuConfig, VerimuReport, Severity } from './core/types.js';
+
+/** Result of uploading scan results to the Verimu platform */
+export interface UploadResult {
+  projectId: string;
+  projectCreated: boolean;
+  totalDependencies: number;
+  vulnerableDependencies: number;
+  dashboardUrl: string;
+}
 
 /**
  * Main scan pipeline — orchestrates the full Verimu workflow:
  *   1. Detect ecosystem & parse lockfile
  *   2. Generate CycloneDX SBOM
- *   3. Check dependencies for CVEs
+ *   3. Check dependencies for CVEs (via OSV)
  *   4. Produce report
- *   5. Optionally upload snapshot to Verimu API
+ *   5. Upload to Verimu platform (if API key provided)
  */
 export async function scan(config: VerimuConfig): Promise<VerimuReport> {
   const {
@@ -68,7 +79,57 @@ export async function scan(config: VerimuConfig): Promise<VerimuReport> {
     generatedAt: new Date().toISOString(),
   };
 
+  // 6. Upload to Verimu platform (if API key provided)
+  if (config.apiKey) {
+    try {
+      const uploadResult = await uploadToVerimu(report, config);
+      (report as VerimuReport & { upload?: UploadResult }).upload = uploadResult;
+    } catch {
+      // Upload failure should not break the scan — log but continue
+      // The CLI will handle displaying the error
+    }
+  }
+
   return report;
+}
+
+/**
+ * Uploads scan results to the Verimu platform.
+ *
+ * 1. Upserts the project (create-if-not-exists by name)
+ * 2. POSTs the SBOM for dependency tracking + CVE scanning
+ */
+export async function uploadToVerimu(
+  report: VerimuReport,
+  config: VerimuConfig
+): Promise<UploadResult> {
+  if (!config.apiKey) {
+    throw new Error('API key required for upload');
+  }
+
+  const client = new VerimuApiClient(config.apiKey, config.apiBaseUrl);
+
+  // Derive project name from the directory
+  const projectName = basename(config.projectPath);
+
+  // 1. Upsert project
+  const upsertRes = await client.upsertProject({
+    name: projectName,
+    ecosystem: report.project.ecosystem,
+  });
+
+  const projectId = upsertRes.project.id;
+
+  // 2. Upload SBOM
+  const scanRes = await client.uploadSbom(projectId, report.sbom.content);
+
+  return {
+    projectId,
+    projectCreated: upsertRes.created,
+    totalDependencies: scanRes.summary.total_dependencies,
+    vulnerableDependencies: scanRes.summary.vulnerable_dependencies,
+    dashboardUrl: `https://app.verimu.com/dashboard/projects/${projectId}`,
+  };
 }
 
 /**

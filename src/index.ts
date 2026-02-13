@@ -4,7 +4,7 @@
 //
 
 export { generateSbom } from './generate-sbom.js';
-export { scan, shouldFailCi, printReport } from './scan.js';
+export { scan, shouldFailCi, printReport, uploadToVerimu } from './scan.js';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -29,6 +29,8 @@ export type {
   CiProvider,
 } from './core/types.js';
 
+export type { UploadResult } from './scan.js';
+
 // ─── Errors ─────────────────────────────────────────────────────
 
 export {
@@ -38,6 +40,10 @@ export {
   CveSourceError,
   ApiKeyRequiredError,
 } from './core/errors.js';
+
+// ─── API Client ─────────────────────────────────────────────────
+
+export { VerimuApiClient } from './api/client.js';
 
 // ─── Advanced / Internal ────────────────────────────────────────
 // For users who need fine-grained control over individual steps.
