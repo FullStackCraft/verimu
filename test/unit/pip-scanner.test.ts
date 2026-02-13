@@ -150,4 +150,73 @@ describe('PipScanner', () => {
       expect(django?.purl).toBe('pkg:pypi/django@5.0.1');
     });
   });
+
+  describe('scan() — -r includes support', () => {
+    it('follows -r includes and parses all deps', async () => {
+      const lockfilePath = path.join(FIXTURES, 'python-includes', 'requirements.txt');
+      const result = await scanner.scan(path.join(FIXTURES, 'python-includes'), lockfilePath);
+
+      // 2 from main + 3 from common.txt + 3 from dev/dev-requirements.txt = 8
+      expect(result.dependencies.length).toBe(8);
+
+      const names = result.dependencies.map((d) => d.name);
+      // From main requirements.txt
+      expect(names).toContain('flask');
+      expect(names).toContain('requests');
+      // From common.txt
+      expect(names).toContain('sqlalchemy');
+      expect(names).toContain('pydantic');
+      expect(names).toContain('python-dotenv');
+      // From dev/dev-requirements.txt
+      expect(names).toContain('pytest');
+      expect(names).toContain('coverage');
+      expect(names).toContain('black');
+    });
+
+    it('handles nested directory includes', async () => {
+      const lockfilePath = path.join(FIXTURES, 'python-includes', 'requirements.txt');
+      const result = await scanner.scan(path.join(FIXTURES, 'python-includes'), lockfilePath);
+
+      // dev/dev-requirements.txt should be included
+      const pytest = result.dependencies.find((d) => d.name === 'pytest');
+      expect(pytest).toBeDefined();
+      expect(pytest?.version).toBe('7.4.4');
+    });
+
+    it('prevents infinite loops with circular includes', async () => {
+      const lockfilePath = path.join(FIXTURES, 'python-circular', 'requirements.txt');
+      const result = await scanner.scan(path.join(FIXTURES, 'python-circular'), lockfilePath);
+
+      // Should parse without hanging: django + celery + redis = 3 unique deps
+      expect(result.dependencies.length).toBe(3);
+
+      const names = result.dependencies.map((d) => d.name);
+      expect(names).toContain('django');
+      expect(names).toContain('celery');
+      expect(names).toContain('redis');
+    });
+  });
+
+  describe('strict pinning enforcement', () => {
+    it('throws LockfileParseError for >= version specifier', async () => {
+      const lockfilePath = path.join(FIXTURES, 'python-unpinned', 'requirements.txt');
+      await expect(
+        scanner.scan(path.join(FIXTURES, 'python-unpinned'), lockfilePath)
+      ).rejects.toThrow('Non-pinned dependency detected');
+    });
+
+    it('parses strictly pinned versions correctly', async () => {
+      const lockfilePath = path.join(FIXTURES, 'python-includes', 'requirements.txt');
+      const result = await scanner.scan(path.join(FIXTURES, 'python-includes'), lockfilePath);
+
+      const requests = result.dependencies.find((d) => d.name === 'requests');
+      expect(requests?.version).toBe('2.31.0');
+
+      const sqlalchemy = result.dependencies.find((d) => d.name === 'sqlalchemy');
+      expect(sqlalchemy?.version).toBe('2.0.25');
+
+      const pydantic = result.dependencies.find((d) => d.name === 'pydantic');
+      expect(pydantic?.version).toBe('2.5.0');
+    });
+  });
 });

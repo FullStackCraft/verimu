@@ -71,12 +71,35 @@ describe('MavenScanner', () => {
       expect(slf4j?.purl).toBe('pkg:maven/org.slf4j/slf4j-api@2.0.9');
     });
 
-    it('marks compile/runtime scope as direct', async () => {
+    it('marks deps from pom.xml as direct, transitive as non-direct', async () => {
       const pomPath = path.join(FIXTURES, 'java-api', 'pom.xml');
       const result = await scanner.scan(path.join(FIXTURES, 'java-api'), pomPath);
 
+      // Direct deps (declared in pom.xml)
       const guava = result.dependencies.find((d) => d.name === 'com.google.guava:guava');
       expect(guava?.direct).toBe(true);
+
+      const springStarter = result.dependencies.find(
+        (d) => d.name === 'org.springframework.boot:spring-boot-starter-web'
+      );
+      expect(springStarter?.direct).toBe(true);
+
+      const slf4j = result.dependencies.find((d) => d.name === 'org.slf4j:slf4j-api');
+      expect(slf4j?.direct).toBe(true);
+
+      // Transitive deps (not in pom.xml, pulled in by direct deps)
+      const springCore = result.dependencies.find((d) => d.name === 'org.springframework:spring-core');
+      expect(springCore?.direct).toBe(false);
+
+      const failureaccess = result.dependencies.find(
+        (d) => d.name === 'com.google.guava:failureaccess'
+      );
+      expect(failureaccess?.direct).toBe(false);
+
+      const jackson = result.dependencies.find(
+        (d) => d.name === 'com.fasterxml.jackson.core:jackson-databind'
+      );
+      expect(jackson?.direct).toBe(false);
     });
 
     it('sets ecosystem to maven for all dependencies', async () => {
@@ -123,6 +146,32 @@ describe('MavenScanner', () => {
       expect(names).toContain('com.fasterxml.jackson.core:jackson-databind');
       expect(names).toContain('ch.qos.logback:logback-classic');
       expect(names).toContain('org.slf4j:slf4j-api');
+    });
+
+    it('correctly identifies direct deps from pom.xml vs transitive', async () => {
+      const pomPath = path.join(FIXTURES, 'java-spring', 'pom.xml');
+      const result = await scanner.scan(path.join(FIXTURES, 'java-spring'), pomPath);
+
+      // Direct deps from pom.xml
+      const starterWeb = result.dependencies.find(
+        (d) => d.name === 'org.springframework.boot:spring-boot-starter-web'
+      );
+      expect(starterWeb?.direct).toBe(true);
+
+      const postgresql = result.dependencies.find((d) => d.name === 'org.postgresql:postgresql');
+      expect(postgresql?.direct).toBe(true);
+
+      // Transitive deps (not in pom.xml)
+      const springCore = result.dependencies.find((d) => d.name === 'org.springframework:spring-core');
+      expect(springCore?.direct).toBe(false);
+
+      const hibernate = result.dependencies.find((d) => d.name === 'org.hibernate.orm:hibernate-core');
+      expect(hibernate?.direct).toBe(false);
+
+      const securityCore = result.dependencies.find(
+        (d) => d.name === 'org.springframework.security:spring-security-core'
+      );
+      expect(securityCore?.direct).toBe(false);
     });
   });
 

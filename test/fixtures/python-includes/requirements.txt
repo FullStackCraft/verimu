@@ -1,0 +1,9 @@
+# Main requirements file with -r includes
+flask==3.0.0
+requests==2.31.0
+
+# Include common dependencies
+-r common.txt
+
+# Include dev dependencies
+-r dev/dev-requirements.txt
