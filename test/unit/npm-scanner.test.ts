@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { NpmScanner } from '../../src/scanners/npm/npm-scanner.js';
+import { LockfileParseError } from '../../src/core/errors.js';
 import path from 'path';
 
 const FIXTURES = path.resolve(__dirname, '../fixtures');
@@ -99,6 +100,77 @@ describe('NpmScanner', () => {
 
       expect(result.dependencies.length).toBe(3);
       expect(result.dependencies.every((d) => d.direct)).toBe(true);
+    });
+  });
+
+  describe('scan() — lockfile v1 (legacy)', () => {
+    it('parses legacy lockfile v1 format with nested dependencies', async () => {
+      const lockfilePath = path.join(FIXTURES, 'node-legacy-v1', 'package-lock.json');
+      const result = await scanner.scan(path.join(FIXTURES, 'node-legacy-v1'), lockfilePath);
+
+      expect(result.ecosystem).toBe('npm');
+      expect(result.dependencies.length).toBe(3);
+
+      const names = result.dependencies.map((d) => d.name).sort();
+      expect(names).toEqual(['debug', 'lodash', 'ms']);
+    });
+
+    it('correctly identifies direct vs transitive in v1 format', async () => {
+      const lockfilePath = path.join(FIXTURES, 'node-legacy-v1', 'package-lock.json');
+      const result = await scanner.scan(path.join(FIXTURES, 'node-legacy-v1'), lockfilePath);
+
+      const lodash = result.dependencies.find((d) => d.name === 'lodash');
+      const debug = result.dependencies.find((d) => d.name === 'debug');
+      const ms = result.dependencies.find((d) => d.name === 'ms');
+
+      expect(lodash?.direct).toBe(true);
+      expect(debug?.direct).toBe(true);
+      expect(ms?.direct).toBe(false); // nested under debug
+    });
+
+    it('generates correct purls for v1 lockfile', async () => {
+      const lockfilePath = path.join(FIXTURES, 'node-legacy-v1', 'package-lock.json');
+      const result = await scanner.scan(path.join(FIXTURES, 'node-legacy-v1'), lockfilePath);
+
+      const lodash = result.dependencies.find((d) => d.name === 'lodash');
+      expect(lodash?.purl).toBe('pkg:npm/lodash@4.17.21');
+    });
+  });
+
+  describe('error handling', () => {
+    it('throws LockfileParseError when lockfile contains invalid JSON', async () => {
+      const lockfilePath = path.join(FIXTURES, 'node-invalid-lockfile', 'package-lock.json');
+
+      await expect(
+        scanner.scan(path.join(FIXTURES, 'node-invalid-lockfile'), lockfilePath)
+      ).rejects.toThrow(LockfileParseError);
+
+      await expect(
+        scanner.scan(path.join(FIXTURES, 'node-invalid-lockfile'), lockfilePath)
+      ).rejects.toThrow('Invalid JSON');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('treats all dependencies as non-direct when package.json is missing', async () => {
+      const lockfilePath = path.join(FIXTURES, 'node-no-packagejson', 'package-lock.json');
+      const result = await scanner.scan(path.join(FIXTURES, 'node-no-packagejson'), lockfilePath);
+
+      expect(result.dependencies.length).toBe(2); // express, body-parser
+      // Without package.json, we can't determine direct deps
+      expect(result.dependencies.every((d) => d.direct === false)).toBe(true);
+    });
+
+    it('skips workspace link entries (link: true)', async () => {
+      const lockfilePath = path.join(FIXTURES, 'node-workspace-links', 'package-lock.json');
+      const result = await scanner.scan(path.join(FIXTURES, 'node-workspace-links'), lockfilePath);
+
+      // Should only have lodash, not @internal/utils (link: true)
+      expect(result.dependencies.length).toBe(1);
+      expect(result.dependencies[0].name).toBe('lodash');
+
+      const internalUtils = result.dependencies.find((d) => d.name === '@internal/utils');
+      expect(internalUtils).toBeUndefined();
     });
   });
 });
