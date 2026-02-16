@@ -1,0 +1,9 @@
+{
+    "name": "node-legacy-v1",
+    "version": "1.0.0",
+    "description": "Legacy Node.js project with lockfile v1",
+    "dependencies": {
+        "lodash": "4.17.21",
+        "debug": "4.3.4"
+    }
+}

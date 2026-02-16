@@ -23,7 +23,7 @@ import { LockfileParseError } from '../../core/errors.js';
  */
 export class PipScanner implements DependencyScanner {
   readonly ecosystem: Ecosystem = 'pip';
-  readonly lockfileNames = ['requirements.txt', 'Pipfile.lock'];
+  readonly lockfileNames = ['Pipfile.lock', 'requirements.txt'];
 
   async detect(projectPath: string): Promise<string | null> {
     // Check in priority order
@@ -43,7 +43,7 @@ export class PipScanner implements DependencyScanner {
     if (filename === 'Pipfile.lock') {
       dependencies = this.parsePipfileLock(raw, lockfilePath);
     } else {
-      dependencies = this.parseRequirementsTxt(raw, lockfilePath);
+      dependencies = await this.parseRequirementsTxt(raw, lockfilePath);
     }
 
     return {
@@ -59,30 +59,58 @@ export class PipScanner implements DependencyScanner {
    * Parses `requirements.txt` format.
    *
    * Supports:
-   *   - `package==1.2.3` (pinned)
-   *   - `package>=1.2.0` (minimum — uses the specified version)
-   *   - `package~=1.2.0` (compatible release)
+   *   - `package==1.2.3` (pinned) — REQUIRED
    *   - Comments (`#`) and blank lines are skipped
-   *   - `-r other-file.txt` (include directive) — skipped for now
+   *   - `-r other-file.txt` (include directive) — recursively parsed
    *   - `--index-url` and other pip flags — skipped
+   *
+   * Throws if any dependency is not strictly pinned with ==.
+   * Use `pip freeze` to generate a properly pinned requirements.txt.
    */
-  private parseRequirementsTxt(content: string, lockfilePath: string): Dependency[] {
+  private async parseRequirementsTxt(
+    content: string,
+    lockfilePath: string,
+    visited: Set<string> = new Set()
+  ): Promise<Dependency[]> {
     const deps: Dependency[] = [];
+    const currentDir = path.dirname(lockfilePath);
+    const normalizedPath = path.resolve(lockfilePath);
+
+    // Prevent circular includes
+    if (visited.has(normalizedPath)) {
+      return deps;
+    }
+    visited.add(normalizedPath);
 
     for (const rawLine of content.split('\n')) {
       const line = rawLine.trim();
 
-      // Skip comments, blank lines, flags, and include directives
-      if (!line || line.startsWith('#') || line.startsWith('-') || line.startsWith('--')) {
+      // Skip comments and blank lines
+      if (!line || line.startsWith('#')) {
         continue;
       }
 
-      // Parse "package==version", "package>=version", "package~=version"
-      const match = line.match(/^([a-zA-Z0-9_][a-zA-Z0-9._-]*)\s*(?:[~=!<>]=?)\s*(.+)$/);
-      if (match) {
-        const [, name, versionSpec] = match;
-        // Extract the first version number from the spec
-        const version = this.extractVersion(versionSpec);
+      // Handle -r / --requirement includes
+      const includeMatch = line.match(/^-r\s+(.+)$/) || line.match(/^--requirement\s+(.+)$/);
+      if (includeMatch) {
+        const includePath = path.resolve(currentDir, includeMatch[1].trim());
+        if (existsSync(includePath)) {
+          const includeContent = await readFile(includePath, 'utf-8');
+          const includedDeps = await this.parseRequirementsTxt(includeContent, includePath, visited);
+          deps.push(...includedDeps);
+        }
+        continue;
+      }
+
+      // Skip other pip flags (--index-url, -e, etc.)
+      if (line.startsWith('-') || line.startsWith('--')) {
+        continue;
+      }
+
+      // Parse strictly pinned "package==version" only
+      const pinnedMatch = line.match(/^([a-zA-Z0-9_][a-zA-Z0-9._-]*)\s*==\s*([^,\s]+)$/);
+      if (pinnedMatch) {
+        const [, name, version] = pinnedMatch;
         if (name && version) {
           deps.push({
             name: this.normalizePipName(name),
@@ -92,6 +120,16 @@ export class PipScanner implements DependencyScanner {
             purl: this.buildPurl(name, version),
           });
         }
+        continue;
+      }
+
+      // Check if it's a dependency line with non-pinned version specifier
+      const depMatch = line.match(/^([a-zA-Z0-9_][a-zA-Z0-9._-]*)\s*([~=!<>].*)$/);
+      if (depMatch) {
+        throw new LockfileParseError(
+          lockfilePath,
+          `Non-pinned dependency detected: "${line}". Use pip freeze or Pipfile.lock.`
+        );
       }
     }
 
@@ -157,16 +195,6 @@ export class PipScanner implements DependencyScanner {
     }
 
     return deps;
-  }
-
-  /**
-   * Extracts the version number from a pip version specifier.
-   * "1.2.3" → "1.2.3"
-   * "1.2.3,<2.0" → "1.2.3"
-   */
-  private extractVersion(spec: string): string {
-    const cleaned = spec.split(',')[0].trim();
-    return cleaned;
   }
 
   /**

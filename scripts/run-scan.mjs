@@ -23,7 +23,11 @@ import path from 'path';
     console.log('Wrote SBOM:', out);
     console.log('Components:', report.sbom.componentCount);
   } catch (err) {
-    console.error('Scan failed:', err);
+    if (err.code === 'ERR_MODULE_NOT_FOUND') {
+      console.error('Error: dist/index.mjs not found. Please run "npm run build" first.');
+    } else {
+      console.error('Scan failed:', err);
+    }
     process.exit(1);
   }
 })();

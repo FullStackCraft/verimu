@@ -15,6 +15,9 @@ const BATCH_SIZE = 1000; // OSV querybatch supports up to 1000
  * - Aggregates data from GitHub Advisory, NVD, and others
  *
  * API docs: https://google.github.io/osv.dev/api/
+ *
+ * Note: /v1/querybatch only returns minimal data (id, modified).
+ * Full vulnerability details must be fetched via /v1/vulns/{id}.
  */
 export class OsvSource implements CveSource {
   readonly sourceId: VulnerabilitySource = 'osv';
@@ -42,7 +45,10 @@ export class OsvSource implements CveSource {
     return allVulns;
   }
 
-  /** Uses OSV's /querybatch endpoint for efficient bulk lookups */
+  /**
+   * Uses OSV's /querybatch endpoint to get vulnerability IDs,
+   * then fetches full details for each unique vulnerability.
+   */
   private async queryBatch(dependencies: Dependency[]): Promise<Vulnerability[]> {
     const queries = dependencies.map((dep) => ({
       version: dep.version,
@@ -63,21 +69,83 @@ export class OsvSource implements CveSource {
     }
 
     const data = (await response.json()) as OsvBatchResponse;
-    const vulnerabilities: Vulnerability[] = [];
 
-    // Each result in `results` corresponds to the query at the same index
+    // Collect unique vuln IDs and track which dependencies they affect
+    const vulnIdToDeps = new Map<string, Dependency[]>();
+
     for (let i = 0; i < data.results.length; i++) {
       const result = data.results[i];
       const dep = dependencies[i];
 
       if (result.vulns && result.vulns.length > 0) {
         for (const vuln of result.vulns) {
-          vulnerabilities.push(this.mapVulnerability(vuln, dep));
+          const existing = vulnIdToDeps.get(vuln.id);
+          if (existing) {
+            existing.push(dep);
+          } else {
+            vulnIdToDeps.set(vuln.id, [dep]);
+          }
         }
       }
     }
 
+    if (vulnIdToDeps.size === 0) {
+      return [];
+    }
+
+    // Fetch full details for each unique vulnerability
+    const vulnIds = Array.from(vulnIdToDeps.keys());
+    const fullVulns = await this.fetchVulnerabilityDetails(vulnIds);
+
+    // Map full vulnerability data to our format, linking to affected deps
+    const vulnerabilities: Vulnerability[] = [];
+
+    for (const osvVuln of fullVulns) {
+      const affectedDeps = vulnIdToDeps.get(osvVuln.id) ?? [];
+      for (const dep of affectedDeps) {
+        vulnerabilities.push(this.mapVulnerability(osvVuln, dep));
+      }
+    }
+
     return vulnerabilities;
+  }
+
+  /**
+   * Fetches full vulnerability details from /v1/vulns/{id} for each ID.
+   * Makes parallel requests for efficiency.
+   */
+  private async fetchVulnerabilityDetails(vulnIds: string[]): Promise<OsvVulnerability[]> {
+    const results: OsvVulnerability[] = [];
+
+    // Fetch in parallel with a reasonable concurrency limit
+    const CONCURRENCY = 10;
+    for (let i = 0; i < vulnIds.length; i += CONCURRENCY) {
+      const batch = vulnIds.slice(i, i + CONCURRENCY);
+      const promises = batch.map(async (id) => {
+        try {
+          const response = await this.fetchFn(`${OSV_API_BASE}/vulns/${encodeURIComponent(id)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (!response.ok) {
+            // Log but don't fail the entire scan for individual vuln fetch errors
+            console.warn(`Failed to fetch vulnerability ${id}: ${response.status}`);
+            return null;
+          }
+
+          return (await response.json()) as OsvVulnerability;
+        } catch (err) {
+          console.warn(`Error fetching vulnerability ${id}:`, err);
+          return null;
+        }
+      });
+
+      const batchResults = await Promise.all(promises);
+      results.push(...batchResults.filter((v): v is OsvVulnerability => v !== null));
+    }
+
+    return results;
   }
 
   /** Maps an OSV vulnerability record to our Vulnerability type */
@@ -141,15 +209,87 @@ export class OsvSource implements CveSource {
     return { level: 'UNKNOWN' };
   }
 
-  /** Parses CVSS v3 vector string to extract the base score */
+  /** Parses CVSS v3 vector string to extract/calculate the base score */
   private parseCvssScore(vectorOrScore: string): number | null {
-    // Could be a raw score like "7.5" or a vector like "CVSS:3.1/AV:N/AC:L/..."
+    // Could be a raw score like "7.5"
     const num = parseFloat(vectorOrScore);
     if (!isNaN(num) && num >= 0 && num <= 10) return num;
 
-    // If it's a vector string, we'd need to calculate — for now return null
-    // and rely on severity text
+    // Parse CVSS v3.x vector string like "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    if (vectorOrScore.startsWith('CVSS:3')) {
+      return this.calculateCvss3Score(vectorOrScore);
+    }
+
     return null;
+  }
+
+  /** Calculate CVSS v3.x base score from vector string */
+  private calculateCvss3Score(vector: string): number | null {
+    // CVSS v3 metric values
+    const metricValues: Record<string, Record<string, number>> = {
+      AV: { N: 0.85, A: 0.62, L: 0.55, P: 0.2 },       // Attack Vector
+      AC: { L: 0.77, H: 0.44 },                         // Attack Complexity
+      PR: {                                              // Privileges Required (varies by Scope)
+        N_U: 0.85, L_U: 0.62, H_U: 0.27,
+        N_C: 0.85, L_C: 0.68, H_C: 0.5,
+      },
+      UI: { N: 0.85, R: 0.62 },                         // User Interaction
+      C: { H: 0.56, L: 0.22, N: 0 },                    // Confidentiality Impact
+      I: { H: 0.56, L: 0.22, N: 0 },                    // Integrity Impact
+      A: { H: 0.56, L: 0.22, N: 0 },                    // Availability Impact
+    };
+
+    // Parse vector string
+    const parts = vector.split('/');
+    const metrics: Record<string, string> = {};
+    for (const part of parts) {
+      const [key, value] = part.split(':');
+      if (key && value) metrics[key] = value;
+    }
+
+    // Extract required metrics
+    const av = metricValues.AV[metrics.AV];
+    const ac = metricValues.AC[metrics.AC];
+    const ui = metricValues.UI[metrics.UI];
+    const scope = metrics.S; // 'U' = Unchanged, 'C' = Changed
+    const c = metricValues.C[metrics.C];
+    const i = metricValues.I[metrics.I];
+    const a = metricValues.A[metrics.A];
+
+    // PR depends on Scope
+    const prKey = `${metrics.PR}_${scope}`;
+    const pr = metricValues.PR[prKey];
+
+    if ([av, ac, pr, ui, c, i, a].some((v) => v === undefined)) {
+      return null; // Missing required metrics
+    }
+
+    // Calculate Impact Sub Score (ISS)
+    const iss = 1 - (1 - c) * (1 - i) * (1 - a);
+
+    // Calculate Impact
+    let impact: number;
+    if (scope === 'U') {
+      impact = 6.42 * iss;
+    } else {
+      impact = 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
+    }
+
+    // Calculate Exploitability
+    const exploitability = 8.22 * av * ac * pr * ui;
+
+    // Calculate Base Score
+    if (impact <= 0) return 0;
+
+    let baseScore: number;
+    if (scope === 'U') {
+      baseScore = Math.min(impact + exploitability, 10);
+    } else {
+      baseScore = Math.min(1.08 * (impact + exploitability), 10);
+    }
+
+    // Round up to 1 decimal place (CVSS spec)
+    return Math.ceil(baseScore * 10) / 10;
   }
 
   /** Converts a CVSS score (0-10) to a severity level */
@@ -215,12 +355,20 @@ export class OsvSource implements CveSource {
 
 // ─── OSV API Response Types ─────────────────────────────────────
 
+/** Response from /v1/querybatch - returns minimal vuln info (just id and modified) */
 interface OsvBatchResponse {
   results: Array<{
-    vulns?: OsvVulnerability[];
+    vulns?: OsvBatchVuln[];
   }>;
 }
 
+/** Minimal vulnerability info returned by /v1/querybatch */
+interface OsvBatchVuln {
+  id: string;
+  modified?: string;
+}
+
+/** Full vulnerability details from /v1/vulns/{id} */
 interface OsvVulnerability {
   id: string;
   summary?: string;
