@@ -209,15 +209,87 @@ export class OsvSource implements CveSource {
     return { level: 'UNKNOWN' };
   }
 
-  /** Parses CVSS v3 vector string to extract the base score */
+  /** Parses CVSS v3 vector string to extract/calculate the base score */
   private parseCvssScore(vectorOrScore: string): number | null {
-    // Could be a raw score like "7.5" or a vector like "CVSS:3.1/AV:N/AC:L/..."
+    // Could be a raw score like "7.5"
     const num = parseFloat(vectorOrScore);
     if (!isNaN(num) && num >= 0 && num <= 10) return num;
 
-    // If it's a vector string, we'd need to calculate — for now return null
-    // and rely on severity text
+    // Parse CVSS v3.x vector string like "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    if (vectorOrScore.startsWith('CVSS:3')) {
+      return this.calculateCvss3Score(vectorOrScore);
+    }
+
     return null;
+  }
+
+  /** Calculate CVSS v3.x base score from vector string */
+  private calculateCvss3Score(vector: string): number | null {
+    // CVSS v3 metric values
+    const metricValues: Record<string, Record<string, number>> = {
+      AV: { N: 0.85, A: 0.62, L: 0.55, P: 0.2 },       // Attack Vector
+      AC: { L: 0.77, H: 0.44 },                         // Attack Complexity
+      PR: {                                              // Privileges Required (varies by Scope)
+        N_U: 0.85, L_U: 0.62, H_U: 0.27,
+        N_C: 0.85, L_C: 0.68, H_C: 0.5,
+      },
+      UI: { N: 0.85, R: 0.62 },                         // User Interaction
+      C: { H: 0.56, L: 0.22, N: 0 },                    // Confidentiality Impact
+      I: { H: 0.56, L: 0.22, N: 0 },                    // Integrity Impact
+      A: { H: 0.56, L: 0.22, N: 0 },                    // Availability Impact
+    };
+
+    // Parse vector string
+    const parts = vector.split('/');
+    const metrics: Record<string, string> = {};
+    for (const part of parts) {
+      const [key, value] = part.split(':');
+      if (key && value) metrics[key] = value;
+    }
+
+    // Extract required metrics
+    const av = metricValues.AV[metrics.AV];
+    const ac = metricValues.AC[metrics.AC];
+    const ui = metricValues.UI[metrics.UI];
+    const scope = metrics.S; // 'U' = Unchanged, 'C' = Changed
+    const c = metricValues.C[metrics.C];
+    const i = metricValues.I[metrics.I];
+    const a = metricValues.A[metrics.A];
+
+    // PR depends on Scope
+    const prKey = `${metrics.PR}_${scope}`;
+    const pr = metricValues.PR[prKey];
+
+    if ([av, ac, pr, ui, c, i, a].some((v) => v === undefined)) {
+      return null; // Missing required metrics
+    }
+
+    // Calculate Impact Sub Score (ISS)
+    const iss = 1 - (1 - c) * (1 - i) * (1 - a);
+
+    // Calculate Impact
+    let impact: number;
+    if (scope === 'U') {
+      impact = 6.42 * iss;
+    } else {
+      impact = 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
+    }
+
+    // Calculate Exploitability
+    const exploitability = 8.22 * av * ac * pr * ui;
+
+    // Calculate Base Score
+    if (impact <= 0) return 0;
+
+    let baseScore: number;
+    if (scope === 'U') {
+      baseScore = Math.min(impact + exploitability, 10);
+    } else {
+      baseScore = Math.min(1.08 * (impact + exploitability), 10);
+    }
+
+    // Round up to 1 decimal place (CVSS spec)
+    return Math.ceil(baseScore * 10) / 10;
   }
 
   /** Converts a CVSS score (0-10) to a severity level */
