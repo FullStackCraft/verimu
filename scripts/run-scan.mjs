@@ -2,14 +2,17 @@ import path from 'path';
 
 (async () => {
   try {
-    // prefer compiled JS in dist (built by `npm run build`), fallback to src if present
-    let mod;
+    // Load the built package entrypoint (self-scan job runs `npm run build` first).
+    let scan;
     try {
-      mod = await import(new URL('../dist/scan.js', import.meta.url));
+      ({ scan } = await import(new URL('../dist/index.mjs', import.meta.url)));
     } catch (_) {
-      mod = await import(new URL('../src/scan.js', import.meta.url));
+      ({ scan } = await import(new URL('../dist/index.cjs', import.meta.url)));
     }
-    const { scan } = mod;
+
+    if (typeof scan !== 'function') {
+      throw new Error('scan export not found in dist build output');
+    }
 
     const projectPath = path.join(process.cwd(), 'test', 'fixtures', 'node-api');
     const out = path.join(process.cwd(), 'test-sbom.keep.cdx.json');
