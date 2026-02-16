@@ -1,0 +1,3 @@
+# This file has non-pinned versions - should fail
+flask==3.0.0
+requests>=2.31.0
