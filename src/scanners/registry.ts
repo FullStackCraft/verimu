@@ -9,6 +9,7 @@ import { GoScanner } from './go/go-scanner.js';
 import { RubyScanner } from './ruby/ruby-scanner.js';
 import { ComposerScanner } from './composer/composer-scanner.js';
 import { NoLockfileError } from '../core/errors.js';
+import { YarnScanner } from './yarn/yarn-scanner.js';
 
 /**
  * Registry of all available dependency scanners.
@@ -27,6 +28,7 @@ export class ScannerRegistry {
       new GoScanner(),
       new RubyScanner(),
       new ComposerScanner(),
+      new YarnScanner(),
     ];
   }
 
