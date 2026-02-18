@@ -1,0 +1,23 @@
+{
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "jsr:@std/path@^1.0.0": "jsr:@std/path@1.0.8",
+      "npm:hono@^4.0.0": "npm:hono@4.6.20"
+    },
+    "jsr": {
+      "@std/path@1.0.8": {
+        "integrity": "sha256-abc123def456"
+      },
+      "@std/internal@1.0.6": {
+        "integrity": "sha256-ghi789jkl012"
+      }
+    },
+    "npm": {
+      "hono@4.6.20": {
+        "integrity": "sha512-mno345...",
+        "dependencies": {}
+      }
+    }
+  }
+}

@@ -58,6 +58,7 @@ export { RubyScanner } from './scanners/ruby/ruby-scanner.js';
 export { ComposerScanner } from './scanners/composer/composer-scanner.js';
 export { YarnScanner } from './scanners/yarn/yarn-scanner.js';
 export { PnpmScanner } from './scanners/pnpm/pnpm-scanner.js';
+export { DenoScanner } from './scanners/deno/deno-scanner.js';
 export { ScannerRegistry } from './scanners/registry.js';
 export { CycloneDxGenerator } from './sbom/cyclonedx.js';
 export { OsvSource } from './cve/osv.js';

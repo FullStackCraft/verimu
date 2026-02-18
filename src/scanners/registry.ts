@@ -11,6 +11,7 @@ import { ComposerScanner } from './composer/composer-scanner.js';
 import { NoLockfileError } from '../core/errors.js';
 import { YarnScanner } from './yarn/yarn-scanner.js';
 import { PnpmScanner } from './pnpm/pnpm-scanner.js';
+import { DenoScanner } from './deno/deno-scanner.js';
 
 /**
  * Registry of all available dependency scanners.
@@ -31,6 +32,7 @@ export class ScannerRegistry {
       new ComposerScanner(),
       new YarnScanner(),
       new PnpmScanner(),
+      new DenoScanner(),
     ];
   }
 
