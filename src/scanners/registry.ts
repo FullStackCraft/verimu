@@ -10,6 +10,7 @@ import { RubyScanner } from './ruby/ruby-scanner.js';
 import { ComposerScanner } from './composer/composer-scanner.js';
 import { NoLockfileError } from '../core/errors.js';
 import { YarnScanner } from './yarn/yarn-scanner.js';
+import { PnpmScanner } from './pnpm/pnpm-scanner.js';
 
 /**
  * Registry of all available dependency scanners.
@@ -29,6 +30,7 @@ export class ScannerRegistry {
       new RubyScanner(),
       new ComposerScanner(),
       new YarnScanner(),
+      new PnpmScanner(),
     ];
   }
 
