@@ -42,12 +42,10 @@ Each pipeline validates:
 - tag version matches `package.json` version
 - tagged commit exists on `main`
 
-### Required CI secret / variable
+### Publish credentials
 
-- `NPM_TOKEN`: npm automation token with publish rights
-  - GitHub: repository secret `NPM_TOKEN`
-  - GitLab: masked + protected variable `NPM_TOKEN`
-  - Bitbucket: repository variable `NPM_TOKEN`
+- GitHub Actions (`.github/workflows/release.yml`): uses npm Trusted Publishing (OIDC), so no `NPM_TOKEN` secret is required.
+- GitLab and Bitbucket pipelines in this repo still use `NPM_TOKEN` (`.gitlab-ci.yml`, `bitbucket-pipelines.yml`).
 
 ### Recommended release flow
 
