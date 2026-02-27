@@ -1,6 +1,6 @@
 {
   "name": "verimu",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "CRA compliance automation - SBOM generation, CVE monitoring, and vulnerability reporting for the EU Cyber Resilience Act.",
   "type": "module",
   "exports": {

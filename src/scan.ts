@@ -5,6 +5,7 @@ import { CycloneDxGenerator } from './sbom/cyclonedx.js';
 import { CveAggregator } from './cve/aggregator.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { VerimuApiClient } from './api/client.js';
+import type { ScanResponse } from './api/client.js';
 import type { VerimuConfig, VerimuReport, Severity } from './core/types.js';
 
 /** Result of uploading scan results to the Verimu platform */
@@ -14,6 +15,7 @@ export interface UploadResult {
   totalDependencies: number;
   vulnerableDependencies: number;
   dashboardUrl: string;
+  scanResponse: ScanResponse;
 }
 
 /**
@@ -129,6 +131,7 @@ export async function uploadToVerimu(
     totalDependencies: scanRes.summary.total_dependencies,
     vulnerableDependencies: scanRes.summary.vulnerable_dependencies,
     dashboardUrl: `https://app.verimu.com/dashboard/projects/${projectId}`,
+    scanResponse: scanRes,
   };
 }
 
