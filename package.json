@@ -60,6 +60,9 @@
   "engines": {
     "node": ">=20"
   },
+  "overrides": {
+    "rollup": "4.59.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
