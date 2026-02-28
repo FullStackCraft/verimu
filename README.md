@@ -11,7 +11,7 @@ The NPM package for `verimu`, a tool for producing CRA-compliant SBOMs via CI / 
 The core scanning pipeline is CI-agnostic — it works in any environment with Node.js 20+.
 Example CI configs are provided in the `ci-examples/` directory.
 
-- [x] GitHub Actions (`.github/workflows/test.yml`)
+- [x] GitHub Actions (`.github/workflows/release.yml`)
 - [x] GitLab CI (`ci-examples/gitlab-ci.yml`)
 - [x] Bitbucket Pipelines (`ci-examples/bitbucket-pipelines.yml`)
 
@@ -45,12 +45,10 @@ Each pipeline validates:
 - tag version matches `package.json` version
 - tagged commit exists on `main`
 
-### Required CI secret / variable
+### Publish credentials
 
-- `NPM_TOKEN`: npm automation token with publish rights
-  - GitHub: repository secret `NPM_TOKEN`
-  - GitLab: masked + protected variable `NPM_TOKEN`
-  - Bitbucket: repository variable `NPM_TOKEN`
+- GitHub Actions (`.github/workflows/release.yml`): uses npm Trusted Publishing (OIDC), so no `NPM_TOKEN` secret is required.
+- GitLab and Bitbucket pipelines in this repo still use `NPM_TOKEN` (`.gitlab-ci.yml`, `bitbucket-pipelines.yml`).
 
 ### Recommended release flow
 
@@ -83,6 +81,6 @@ The Maven scanner needs resolved dependencies. Since Maven has no lockfile, it u
 
 ## Three CI / CD Pipelines as Self Check on the `verimu` package itself
 
-There is a `bitbucket-pipelines.yml` and `.gitlab-ci.yml` in the root of the project, as well as a `.github/workflows/test.yml` file, all of which would run `verimu` against itself in each of the 3 frameworks we support (GitHub Actions, GitLab CI, Bitbucket Pipelines). The tests should pass in all 3 environments, confirming that `verimu` can successfully scan its own dependencies and produce a report.
+There is a `bitbucket-pipelines.yml` and `.gitlab-ci.yml` in the root of the project, as well as a `.github/workflows/release.yml` file, all of which would run `verimu` against itself in each of the 3 frameworks we support (GitHub Actions, GitLab CI, Bitbucket Pipelines). The tests should pass in all 3 environments, confirming that `verimu` can successfully scan its own dependencies and produce a report.
 
 The same three provider configs now also include tag-based npm release automation, so this repo is a working cross-provider reference for both scanning and publishing.

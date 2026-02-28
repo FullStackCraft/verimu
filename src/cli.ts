@@ -23,6 +23,7 @@ import { resolve } from 'path';
 import { createRequire } from 'module';
 import { scan, shouldFailCi, uploadToVerimu } from './scan.js';
 import { ConsoleReporter } from './reporters/console.js';
+import { renderPlatformScan } from './reporters/platform.js';
 import type { VerimuConfig, Severity, VerimuReport } from './core/types.js';
 
 // ─── Version & branding ─────────────────────────────────────────
@@ -179,9 +180,7 @@ async function main(): Promise<void> {
         logSuccess(`Project created: ${report.project.path}`);
       }
       logSuccess(`${result.totalDependencies} dependencies tracked`);
-      if (result.vulnerableDependencies > 0) {
-        logWarn(`${result.vulnerableDependencies} vulnerable dependencies flagged`);
-      }
+      console.log(renderPlatformScan(report.project.path, result));
       logSuccess(`Dashboard: ${result.dashboardUrl}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

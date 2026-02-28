@@ -35,7 +35,7 @@ export interface ScanResponse {
       severity: string;
       summary: string;
       fixed_version: string | null;
-    }>;
+    }> | null;
   }>;
   summary: {
     total_dependencies: number;
