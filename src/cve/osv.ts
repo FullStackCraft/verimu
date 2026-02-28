@@ -348,6 +348,7 @@ export class OsvSource implements CveSource {
       go: 'Go',
       ruby: 'RubyGems',
       composer: 'Packagist',
+      deno: 'JSR', // JSR packages (Deno registry)
     };
     return map[ecosystem] ?? ecosystem;
   }

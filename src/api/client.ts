@@ -122,6 +122,7 @@ export class VerimuApiClient {
       cargo: 'cargo',
       ruby: 'bundler',
       composer: 'composer',
+      deno: 'deno',
     };
     return map[eco] ?? eco;
   }

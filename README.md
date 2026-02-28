@@ -18,12 +18,15 @@ Example CI configs are provided in the `ci-examples/` directory.
 ## Supported Package Ecosystems
 
 - [x] npm (package-lock.json)
+- [x] yarn (yarn.lock)
+- [x] pnpm (pnpm-lock.yaml)
 - [x] NuGet (packages.lock.json)
 - [x] pip (requirements.txt, Pipfile.lock)
 - [x] Cargo (Cargo.lock)
 - [x] Maven (pom.xml + dependency-tree.txt or `mvn` on PATH)
 - [x] Go (go.sum)
 - [x] Ruby (Gemfile.lock)
+- [x] Composer (composer.lock)
 
 ## Development
 
