@@ -118,6 +118,7 @@ const PURL_TYPE_MAP: Record<Ecosystem, string> = {
   go: 'golang',
   ruby: 'gem',
   composer: 'composer',
+  deno: 'deno',
 };
 
 /**

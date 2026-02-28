@@ -9,7 +9,7 @@
 // ─── Dependency Detection ───────────────────────────────────────
 
 /** Supported package ecosystems */
-export type Ecosystem = 'npm' | 'nuget' | 'cargo' | 'maven' | 'pip' | 'go' | 'ruby' | 'composer';
+export type Ecosystem = 'npm' | 'nuget' | 'cargo' | 'maven' | 'pip' | 'go' | 'ruby' | 'composer' | 'deno';
 
 /** Supported CI/CD providers */
 export type CiProvider = 'github' | 'gitlab' | 'bitbucket';
