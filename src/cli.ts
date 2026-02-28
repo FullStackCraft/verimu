@@ -7,7 +7,7 @@
  *   npx verimu                        # scan current directory
  *   npx verimu scan                   # explicit scan command
  *   npx verimu scan --path ./myapp    # scan specific directory
- *   npx verimu generate-sbom          # SBOM only, no CVE check
+ *   npx verimu generate-sbom          # inventory artifacts only, no CVE check
  *
  * Environment:
  *   VERIMU_API_KEY     — API key for Verimu platform (enables upload + monitoring)
@@ -214,7 +214,7 @@ function printHelp(): void {
 
   Options:
     --path, -p <dir>       Project directory to scan (default: .)
-    --output, -o <file>    SBOM output path (default: ./sbom.cdx.json)
+    --output, -o <file>    CycloneDX output path (SPDX/SWID are written alongside it)
     --fail-on <severity>   Exit 1 if vulns at or above: CRITICAL, HIGH, MEDIUM, LOW
     --skip-cve             Skip CVE vulnerability checking
     --skip-upload          Don't sync to Verimu platform (even if API key is set)

@@ -1,6 +1,14 @@
 import { randomUUID } from 'crypto';
 import type { SbomGenerator } from './generator.interface.js';
 import type { ScanResult, Sbom, SbomFormat, Dependency } from '../core/types.js';
+import {
+  DEFAULT_TOOL_VERSION,
+  VERIMU_TOOL_DESCRIPTION,
+  VERIMU_TOOL_NAME,
+  VERIMU_TOOL_WEBSITE,
+  deriveSupplierName,
+  extractProjectName,
+} from './shared.js';
 
 /**
  * Generates CycloneDX 1.7 JSON SBOMs.
@@ -17,7 +25,7 @@ import type { ScanResult, Sbom, SbomFormat, Dependency } from '../core/types.js'
 export class CycloneDxGenerator implements SbomGenerator {
   readonly format: SbomFormat = 'cyclonedx-json';
 
-  generate(scanResult: ScanResult, toolVersion: string = '0.1.0'): Sbom {
+  generate(scanResult: ScanResult, toolVersion: string = DEFAULT_TOOL_VERSION): Sbom {
     const bom = this.buildBom(scanResult, toolVersion);
     const content = JSON.stringify(bom, null, 2);
 
@@ -31,7 +39,7 @@ export class CycloneDxGenerator implements SbomGenerator {
   }
 
   private buildBom(scanResult: ScanResult, toolVersion: string): CycloneDxBom {
-    const projectName = this.extractProjectName(scanResult.projectPath);
+    const projectName = extractProjectName(scanResult.projectPath);
 
     return {
       $schema: 'http://cyclonedx.org/schema/bom-1.7.schema.json',
@@ -45,14 +53,14 @@ export class CycloneDxGenerator implements SbomGenerator {
           components: [
             {
               type: 'application',
-              name: 'verimu',
+              name: VERIMU_TOOL_NAME,
               version: toolVersion,
-              description: 'Verimu CRA Compliance Scanner',
+              description: VERIMU_TOOL_DESCRIPTION,
               supplier: { name: 'Verimu' },
               externalReferences: [
                 {
                   type: 'website',
-                  url: 'https://verimu.com',
+                  url: VERIMU_TOOL_WEBSITE,
                 },
               ],
             },
@@ -85,27 +93,9 @@ export class CycloneDxGenerator implements SbomGenerator {
       scope: dep.direct ? 'required' : 'optional',
       // NTIA: component.supplier — derived from npm scope or package name
       supplier: {
-        name: this.deriveSupplierName(dep.name),
+        name: deriveSupplierName(dep.name),
       },
     };
-  }
-
-  /**
-   * Derives a supplier name from a package name.
-   *
-   * For scoped packages like "@vue/reactivity" → "@vue"
-   * For unscoped packages like "express" → "express"
-   *
-   * This is the same heuristic used by Syft, Trivy, and other SBOM tools
-   * when registry metadata (author/publisher) isn't available from the lockfile.
-   */
-  private deriveSupplierName(packageName: string): string {
-    if (packageName.startsWith('@')) {
-      // Scoped package: "@scope/name" → "@scope"
-      const scope = packageName.split('/')[0];
-      return scope;
-    }
-    return packageName;
   }
 
   /**
@@ -128,12 +118,6 @@ export class CycloneDxGenerator implements SbomGenerator {
         dependsOn: allDepPurls,
       },
     ];
-  }
-
-  /** Extracts project name from path */
-  private extractProjectName(projectPath: string): string {
-    const parts = projectPath.replace(/\\/g, '/').split('/');
-    return parts[parts.length - 1] || 'unknown-project';
   }
 }
 
