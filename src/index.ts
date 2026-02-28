@@ -4,6 +4,8 @@
 //
 
 export { generateSbom } from './generate-sbom.js';
+export { generateSpdxSbom } from './generate-spdx.js';
+export { generateSwidTag } from './generate-swid.js';
 export { scan, shouldFailCi, printReport, uploadToVerimu } from './scan.js';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -12,12 +14,15 @@ export type {
   // generateSbom() types
   GenerateSbomInput,
   GenerateSbomResult,
+  GenerateSpdxSbomResult,
+  GenerateSwidTagResult,
   SbomDependency,
 
   // scan() types
   Dependency,
   ScanResult,
   Sbom,
+  SbomArtifacts,
   SbomFormat,
   Severity,
   Vulnerability,
@@ -60,7 +65,10 @@ export { YarnScanner } from './scanners/yarn/yarn-scanner.js';
 export { PnpmScanner } from './scanners/pnpm/pnpm-scanner.js';
 export { DenoScanner } from './scanners/deno/deno-scanner.js';
 export { ScannerRegistry } from './scanners/registry.js';
+export { generateSbomArtifacts } from './sbom/artifacts.js';
 export { CycloneDxGenerator } from './sbom/cyclonedx.js';
+export { SpdxJsonGenerator } from './sbom/spdx.js';
+export { SwidTagGenerator } from './sbom/swid.js';
 export { OsvSource } from './cve/osv.js';
 export { CveAggregator } from './cve/aggregator.js';
 export { ConsoleReporter } from './reporters/console.js';
