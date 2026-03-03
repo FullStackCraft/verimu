@@ -21,4 +21,4 @@ jobs:
               git fetch --unshallow
               git remote set-url origin ${{ secrets.VERIMU_GITLAB_REPO }}
               git push origin ${{ vars.GITLAB_BRANCH }}
-  
+   
