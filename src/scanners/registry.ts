@@ -12,6 +12,8 @@ import { NoLockfileError } from '../core/errors.js';
 import { YarnScanner } from './yarn/yarn-scanner.js';
 import { PnpmScanner } from './pnpm/pnpm-scanner.js';
 import { DenoScanner } from './deno/deno-scanner.js';
+import { PoetryScanner } from './poetry/poetry-scanner.js';
+import { UvScanner } from './uv/uv-scanner.js';
 
 /**
  * Registry of all available dependency scanners.
@@ -26,6 +28,8 @@ export class ScannerRegistry {
       new NugetScanner(),
       new CargoScanner(),
       new PipScanner(),
+      new PoetryScanner(),
+      new UvScanner(),
       new MavenScanner(),
       new GoScanner(),
       new RubyScanner(),

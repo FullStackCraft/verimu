@@ -115,6 +115,8 @@ const PURL_TYPE_MAP: Record<Ecosystem, string> = {
   cargo: 'cargo',
   maven: 'maven',
   pip: 'pypi',
+  poetry: 'pypi',
+  uv: 'pypi',
   go: 'golang',
   ruby: 'gem',
   composer: 'composer',

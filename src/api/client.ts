@@ -33,8 +33,9 @@ export interface ScanResponse {
     vulnerabilities: Array<{
       cve_id: string;
       severity: string;
-      summary: string;
-      fixed_version: string | null;
+      description: string;
+      summary?: string;
+      fixed_version?: string | null;
     }> | null;
   }>;
   summary: {
@@ -116,6 +117,8 @@ export class VerimuApiClient {
     const map: Record<Ecosystem, string> = {
       npm: 'npm',
       pip: 'pip',
+      poetry: 'poetry',
+      uv: 'uv',
       maven: 'maven',
       nuget: 'nuget',
       go: 'gomod',
