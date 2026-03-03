@@ -2,9 +2,15 @@ import { randomUUID } from 'crypto';
 import type {
   GenerateSbomInput,
   GenerateSbomResult,
-  SbomDependency,
-  Ecosystem,
 } from './core/types.js';
+import {
+  DEFAULT_PROJECT_VERSION,
+  VERIMU_TOOL_DESCRIPTION,
+  VERIMU_TOOL_NAME,
+  VERIMU_TOOL_WEBSITE,
+  buildPurl,
+  normalizeDependencies,
+} from './sbom/shared.js';
 
 /**
  * Generates an NTIA-compliant CycloneDX 1.7 SBOM from structured dependency data.
@@ -33,18 +39,12 @@ import type {
 export function generateSbom(input: GenerateSbomInput): GenerateSbomResult {
   const {
     projectName,
-    projectVersion = '0.0.0',
+    projectVersion = DEFAULT_PROJECT_VERSION,
     dependencies,
   } = input;
 
   const timestamp = new Date().toISOString();
-
-  // Resolve PURLs for any deps that don't have one
-  const resolvedDeps = dependencies.map((dep) => ({
-    ...dep,
-    direct: dep.direct ?? true,
-    purl: dep.purl ?? buildPurl(dep.name, dep.version, dep.ecosystem),
-  }));
+  const resolvedDeps = normalizeDependencies(dependencies);
 
   const rootPurl = buildPurl(projectName, projectVersion, 'npm');
 
@@ -60,12 +60,12 @@ export function generateSbom(input: GenerateSbomInput): GenerateSbomResult {
         components: [
           {
             type: 'application',
-            name: 'verimu',
+            name: VERIMU_TOOL_NAME,
             version: '0.0.1',
-            description: 'Verimu CRA Compliance Scanner',
+            description: VERIMU_TOOL_DESCRIPTION,
             supplier: { name: 'Verimu' },
             externalReferences: [
-              { type: 'website', url: 'https://verimu.com' },
+              { type: 'website', url: VERIMU_TOOL_WEBSITE },
             ],
           },
         ],
@@ -86,7 +86,7 @@ export function generateSbom(input: GenerateSbomInput): GenerateSbomResult {
       purl: dep.purl,
       'bom-ref': dep.purl,
       scope: dep.direct ? 'required' : 'optional',
-      supplier: { name: deriveSupplierName(dep.name) },
+      supplier: { name: dep.supplierName },
     })),
     dependencies: [
       {
@@ -105,50 +105,4 @@ export function generateSbom(input: GenerateSbomInput): GenerateSbomResult {
     specVersion: '1.7',
     generatedAt: timestamp,
   };
-}
-
-// ─── Internal helpers ───────────────────────────────────────────
-
-const PURL_TYPE_MAP: Record<Ecosystem, string> = {
-  npm: 'npm',
-  nuget: 'nuget',
-  cargo: 'cargo',
-  maven: 'maven',
-  pip: 'pypi',
-  poetry: 'pypi',
-  uv: 'pypi',
-  go: 'golang',
-  ruby: 'gem',
-  composer: 'composer',
-  deno: 'deno',
-};
-
-/**
- * Builds a Package URL (purl) per the purl spec.
- *
- * For npm scoped packages, the @ prefix is percent-encoded as %40:
- *   @types/node@20.11.5 → pkg:npm/%40types/node@20.11.5
- *
- * See: https://github.com/package-url/purl-spec/blob/main/types-doc/npm-definition.md
- */
-function buildPurl(name: string, version: string, ecosystem: Ecosystem): string {
-  const type = PURL_TYPE_MAP[ecosystem] || ecosystem;
-
-  if (ecosystem === 'npm' && name.startsWith('@')) {
-    return `pkg:${type}/%40${name.slice(1)}@${version}`;
-  }
-
-  return `pkg:${type}/${name}@${version}`;
-}
-
-/**
- * Derives supplier name from a package name.
- * Scoped packages: "@vue/reactivity" → "@vue"
- * Unscoped packages: "express" → "express"
- */
-function deriveSupplierName(packageName: string): string {
-  if (packageName.startsWith('@')) {
-    return packageName.split('/')[0];
-  }
-  return packageName;
 }
