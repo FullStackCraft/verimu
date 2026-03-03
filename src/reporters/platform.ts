@@ -36,7 +36,7 @@ export function renderPlatformScan(projectPath: string, result: UploadResult): s
       const fix = vuln.fixedVersion ? ` → fix: ${vuln.fixedVersion}` : '';
       lines.push(`    ${severityBadge(vuln.severity)}  ${vuln.cveId}`);
       lines.push(`           ${vuln.dependencyName}@${vuln.version}${fix}`);
-      lines.push(`           ${vuln.summary.slice(0, 100)}`);
+      lines.push(`           ${(vuln.summary ?? '').slice(0, 100)}`);
       lines.push('');
     }
   }
@@ -59,8 +59,8 @@ function collectVulnerabilities(result: UploadResult): PlatformVulnerability[] {
       version: scanResult.version,
       cveId: vuln.cve_id,
       severity: normalizeSeverity(vuln.severity),
-      summary: vuln.summary,
-      fixedVersion: vuln.fixed_version,
+      summary: vuln.summary ?? vuln.description ?? 'No description available',
+      fixedVersion: vuln.fixed_version ?? null,
     }))
   );
 }

@@ -345,6 +345,8 @@ export class OsvSource implements CveSource {
       cargo: 'crates.io',
       maven: 'Maven',
       pip: 'PyPI',
+      poetry: 'PyPI',
+      uv: 'PyPI',
       go: 'Go',
       ruby: 'RubyGems',
       composer: 'Packagist',
