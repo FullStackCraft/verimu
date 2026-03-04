@@ -19,6 +19,7 @@ jobs:
       - name: send to gitlab 
         run: | 
               git fetch --unshallow
+              git checkout main
               git remote set-url origin ${{ secrets.VERIMU_GITLAB_REPO }}
               git push origin ${{ vars.GITLAB_BRANCH }}
               git remote set-url origin ${{ secrets.VERIMU_BITBUCKET_REPO }}
