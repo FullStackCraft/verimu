@@ -1,11 +1,11 @@
-name: push to gitlab and bitbucket
+name: Push to Verimu repos on Gitlab and Bitbucket
 
 on:
   push:
-    branches: [pusher-workflow]
+    branches: [main]
     tags: ['*']
   pull_request:
-    branches: [pusher-workflow]
+    branches: [main]
 
 
 jobs:
@@ -20,8 +20,6 @@ jobs:
         run: | 
               git fetch --unshallow
               git remote set-url origin ${{ secrets.VERIMU_GITLAB_REPO }}
-              # git push origin ${{ vars.GITLAB_BRANCH }}
-              git push origin pusher-workflow
+              git push origin ${{ vars.GITLAB_BRANCH }}
               git remote set-url origin ${{ secrets.VERIMU_BITBUCKET_REPO }}
-              # git push origin ${{ vars.BITBUCKET_BRANCH }}
-              git push origin pusher-workflow
+              git push origin ${{ vars.BITBUCKET_BRANCH }}
