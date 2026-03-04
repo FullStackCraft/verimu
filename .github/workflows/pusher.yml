@@ -20,6 +20,8 @@ jobs:
         run: | 
               git fetch --unshallow
               git remote set-url origin ${{ secrets.VERIMU_GITLAB_REPO }}
-              git push origin ${{ vars.GITLAB_BRANCH }}
+              # git push origin ${{ vars.GITLAB_BRANCH }}
+              git push origin pusher-workflow
               git remote set-url origin ${{ secrets.VERIMU_BITBUCKET_REPO }}
-              git push origin ${{ vars.BITBUCKET_BRANCH }}
+              # git push origin ${{ vars.BITBUCKET_BRANCH }}
+              git push origin pusher-workflow
