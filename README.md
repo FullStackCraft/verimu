@@ -1,6 +1,5 @@
 # verimu
 
-<<<<<<< README.md
 The NPM package for `verimu`, a tool for producing CRA-compliant SBOMs via CI / CD pipelines.
 
 ## Documentation and Website
