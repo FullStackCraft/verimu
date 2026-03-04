@@ -3,8 +3,6 @@ name: Push to Verimu repos on Gitlab and Bitbucket
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 
 jobs:
