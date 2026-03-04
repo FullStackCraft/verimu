@@ -1,5 +1,9 @@
 import type { Severity } from '../core/types.js';
+import type { ScanResponse } from '../api/client.js';
 import type { UploadResult } from '../scan.js';
+
+type PlatformScanResult = ScanResponse['scan_results'][number];
+type BackendVulnerability = NonNullable<PlatformScanResult['vulnerabilities']>[number];
 
 type PlatformVulnerability = {
   dependencyName: string;
@@ -36,7 +40,7 @@ export function renderPlatformScan(projectPath: string, result: UploadResult): s
       const fix = vuln.fixedVersion ? ` → fix: ${vuln.fixedVersion}` : '';
       lines.push(`    ${severityBadge(vuln.severity)}  ${vuln.cveId}`);
       lines.push(`           ${vuln.dependencyName}@${vuln.version}${fix}`);
-      lines.push(`           ${vuln.summary.slice(0, 100)}`);
+      lines.push(`           ${(vuln.summary ?? '').slice(0, 100)}`);
       lines.push('');
     }
   }
@@ -58,11 +62,34 @@ function collectVulnerabilities(result: UploadResult): PlatformVulnerability[] {
       dependencyName: scanResult.dependency_name,
       version: scanResult.version,
       cveId: vuln.cve_id,
-      severity: normalizeSeverity(vuln.severity),
-      summary: vuln.summary,
-      fixedVersion: vuln.fixed_version,
+      severity: normalizeSeverity(vuln.severity ?? 'UNKNOWN'),
+      summary: pickSummary(vuln),
+      fixedVersion: pickFixedVersion(vuln),
     }))
   );
+}
+
+function pickSummary(vuln: BackendVulnerability): string {
+  const value = vuln.summary ?? vuln.description;
+  if (typeof value !== 'string' || value.trim() === '') {
+    return 'No description available';
+  }
+  return value;
+}
+
+function pickFixedVersion(vuln: BackendVulnerability): string | null {
+  if (typeof vuln.fixed_version === 'string' && vuln.fixed_version.trim() !== '') {
+    return vuln.fixed_version;
+  }
+
+  for (const source of vuln.sources ?? []) {
+    const fixedVersion = source.data?.fixed_version;
+    if (typeof fixedVersion === 'string' && fixedVersion.trim() !== '') {
+      return fixedVersion;
+    }
+  }
+
+  return null;
 }
 
 function normalizeSeverity(severity: string): Severity {

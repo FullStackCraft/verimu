@@ -77,4 +77,50 @@ describe('renderPlatformScan()', () => {
     expect(output).toContain('debug@4.4.3 → fix: 4.4.4');
     expect(output).toContain('Total: 1');
   });
+
+  it('renders the current backend schema that uses description', () => {
+    const result: Parameters<typeof renderPlatformScan>[1] = {
+      projectId: 'project-1',
+      projectCreated: false,
+      totalDependencies: 1,
+      vulnerableDependencies: 1,
+      dashboardUrl: 'https://app.verimu.com/dashboard/projects/project-1',
+      scanResponse: {
+        project: {
+          id: 'project-1',
+          name: 'verimu.com',
+        },
+        scan_results: [
+          {
+            dependency_id: 'dep-1',
+            dependency_name: 'minimatch',
+            version: '3.1.5',
+            vulnerabilities: [
+              {
+                cve_id: 'CVE-2026-26996',
+                severity: 'MEDIUM',
+                description: 'Regular expression denial of service in minimatch',
+                sources: [
+                  {
+                    data: {
+                      fixed_version: '10.2.4',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        summary: {
+          total_dependencies: 1,
+          vulnerable_dependencies: 1,
+        },
+      },
+    };
+
+    const output = renderPlatformScan('/tmp/verimu.com', result);
+    expect(output).toContain('CVE-2026-26996');
+    expect(output).toContain('Regular expression denial of service in minimatch');
+    expect(output).toContain('minimatch@3.1.5 → fix: 10.2.4');
+  });
 });

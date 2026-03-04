@@ -32,15 +32,29 @@ export interface ScanResponse {
     version: string;
     vulnerabilities: Array<{
       cve_id: string;
-      severity: string;
-      summary: string;
-      fixed_version: string | null;
+      severity?: string | null;
+      summary?: string | null;
+      description?: string | null;
+      fixed_version?: string | null;
+      sources?: Array<{
+        name?: string;
+        url?: string;
+        data?: {
+          fixed_version?: string | null;
+        } | null;
+      }> | null;
     }> | null;
   }>;
   summary: {
     total_dependencies: number;
     vulnerable_dependencies: number;
   };
+}
+
+export interface SbomUploadBundle {
+  cyclonedx: Record<string, unknown>;
+  spdx?: Record<string, unknown>;
+  swid?: string;
 }
 
 export class VerimuApiClient {
@@ -82,15 +96,21 @@ export class VerimuApiClient {
   }
 
   /**
-   * Upload a CycloneDX SBOM to a project and trigger CVE scanning.
+   * Upload a software inventory artifact payload to a project and trigger CVE scanning.
+   *
+   * Backward-compatible:
+   * - string payloads are treated as legacy raw CycloneDX JSON
+   * - object payloads can include CycloneDX + SPDX + SWID together
    */
-  async uploadSbom(projectId: string, sbomContent: string): Promise<ScanResponse> {
-    const sbomJson = JSON.parse(sbomContent);
+  async uploadSbom(projectId: string, payload: string | SbomUploadBundle): Promise<ScanResponse> {
+    const body = typeof payload === 'string'
+      ? JSON.stringify(JSON.parse(payload))
+      : JSON.stringify(payload);
 
     const res = await fetch(`${this.baseUrl}/api/projects/${projectId}/scan`, {
       method: 'POST',
       headers: this.headers(),
-      body: JSON.stringify(sbomJson),
+      body,
     });
 
     if (!res.ok) {
@@ -116,6 +136,8 @@ export class VerimuApiClient {
     const map: Record<Ecosystem, string> = {
       npm: 'npm',
       pip: 'pip',
+      poetry: 'poetry',
+      uv: 'uv',
       maven: 'maven',
       nuget: 'nuget',
       go: 'gomod',

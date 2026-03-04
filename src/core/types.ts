@@ -9,7 +9,7 @@
 // ─── Dependency Detection ───────────────────────────────────────
 
 /** Supported package ecosystems */
-export type Ecosystem = 'npm' | 'nuget' | 'cargo' | 'maven' | 'pip' | 'go' | 'ruby' | 'composer' | 'deno';
+export type Ecosystem = 'npm' | 'nuget' | 'cargo' | 'maven' | 'pip' | 'poetry' | 'uv' | 'go' | 'ruby' | 'composer' | 'deno';
 
 /** Supported CI/CD providers */
 export type CiProvider = 'github' | 'gitlab' | 'bitbucket';
@@ -44,8 +44,8 @@ export interface ScanResult {
 
 // ─── SBOM ───────────────────────────────────────────────────────
 
-/** Supported SBOM output formats */
-export type SbomFormat = 'cyclonedx-json' | 'cyclonedx-xml' | 'spdx-json';
+/** Supported software inventory output formats */
+export type SbomFormat = 'cyclonedx-json' | 'cyclonedx-xml' | 'spdx-json' | 'swid-xml';
 
 /** A generated Software Bill of Materials */
 export interface Sbom {
@@ -59,6 +59,16 @@ export interface Sbom {
   componentCount: number;
   /** Timestamp of generation */
   generatedAt: string;
+}
+
+/** All software inventory artifacts generated for a scan */
+export interface SbomArtifacts {
+  /** Primary CRA-compatible SBOM used for backend parsing */
+  cyclonedx: Sbom;
+  /** SPDX 2.3 JSON document for interoperability */
+  spdx: Sbom;
+  /** Minimal SWID XML tag for root product identity */
+  swid: Sbom;
 }
 
 // ─── Vulnerability / CVE ────────────────────────────────────────
@@ -123,6 +133,8 @@ export interface VerimuReport {
   };
   /** Generated SBOM */
   sbom: Sbom;
+  /** All generated software inventory artifacts (CycloneDX + SPDX + SWID) */
+  artifacts?: SbomArtifacts;
   /** CVE check results */
   cveCheck: CveCheckResult;
   /** Overall summary */
@@ -145,9 +157,9 @@ export interface VerimuReport {
 export interface VerimuConfig {
   /** Path to the project to scan */
   projectPath: string;
-  /** Where to write the SBOM file (default: ./sbom.cdx.json) */
+  /** Where to write the CycloneDX SBOM file (default: ./sbom.cdx.json) */
   sbomOutput?: string;
-  /** SBOM format (default: cyclonedx-json) */
+  /** Reserved for future per-format selection (currently all formats are generated) */
   sbomFormat?: SbomFormat;
   /** Minimum severity to report (default: LOW) */
   severityThreshold?: Severity;
@@ -201,6 +213,34 @@ export interface GenerateSbomResult {
   /** Number of components in the SBOM */
   componentCount: number;
   /** CycloneDX spec version used */
+  specVersion: string;
+  /** ISO timestamp of generation */
+  generatedAt: string;
+}
+
+/** Output of the pure `generateSpdxSbom()` function */
+export interface GenerateSpdxSbomResult {
+  /** The SPDX document as a parsed JavaScript object */
+  sbom: Record<string, unknown>;
+  /** The SPDX document as a formatted JSON string */
+  content: string;
+  /** Number of dependency components represented in the document */
+  componentCount: number;
+  /** SPDX spec version used */
+  specVersion: string;
+  /** ISO timestamp of generation */
+  generatedAt: string;
+}
+
+/** Output of the pure `generateSwidTag()` function */
+export interface GenerateSwidTagResult {
+  /** The SWID XML tag */
+  tag: string;
+  /** Alias of `tag` for consistency with the JSON generators */
+  content: string;
+  /** Number of components represented in the tag */
+  componentCount: number;
+  /** SWID spec identifier */
   specVersion: string;
   /** ISO timestamp of generation */
   generatedAt: string;

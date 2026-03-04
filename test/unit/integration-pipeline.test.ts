@@ -7,6 +7,20 @@ import path from 'path';
 
 const FIXTURES = path.resolve(__dirname, '../fixtures');
 
+function relatedArtifactPaths(cycloneDxOutput: string) {
+  return {
+    spdx: cycloneDxOutput.replace(/\.cdx\.json$/, '.spdx.json'),
+    swid: cycloneDxOutput.replace(/\.cdx\.json$/, '.swid.xml'),
+  };
+}
+
+function cleanupArtifacts(cycloneDxOutput: string) {
+  const paths = [cycloneDxOutput, relatedArtifactPaths(cycloneDxOutput).spdx, relatedArtifactPaths(cycloneDxOutput).swid];
+  for (const filePath of paths) {
+    if (existsSync(filePath)) unlinkSync(filePath);
+  }
+}
+
 /**
  * Integration tests: Full scan pipeline for every supported ecosystem.
  *
@@ -24,7 +38,7 @@ describe('Full Pipeline — NuGet (.NET)', () => {
   const sbomOutput = path.join(FIXTURES, 'dotnet-api', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans dotnet-api fixture end-to-end', async () => {
@@ -73,7 +87,7 @@ describe('Full Pipeline — NuGet (.NET real-world)', () => {
   const sbomOutput = path.join(FIXTURES, 'dotnet-webapi', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans dotnet-webapi fixture end-to-end', async () => {
@@ -93,7 +107,7 @@ describe('Full Pipeline — pip (Python)', () => {
   const sbomOutput = path.join(FIXTURES, 'python-api', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans python-api fixture end-to-end', async () => {
@@ -127,7 +141,7 @@ describe('Full Pipeline — pip (Python Pipfile.lock)', () => {
   const sbomOutput = path.join(FIXTURES, 'python-webapp', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans python-webapp fixture end-to-end', async () => {
@@ -147,7 +161,7 @@ describe('Full Pipeline — Cargo (Rust)', () => {
   const sbomOutput = path.join(FIXTURES, 'rust-cli', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans rust-cli fixture end-to-end', async () => {
@@ -181,7 +195,7 @@ describe('Full Pipeline — Cargo (Rust real-world)', () => {
   const sbomOutput = path.join(FIXTURES, 'rust-webserver', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans rust-webserver fixture end-to-end', async () => {
@@ -201,7 +215,7 @@ describe('Full Pipeline — Maven (Java)', () => {
   const sbomOutput = path.join(FIXTURES, 'java-api', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans java-api fixture end-to-end (via dependency-tree.txt)', async () => {
@@ -234,7 +248,7 @@ describe('Full Pipeline — Maven (Java real-world)', () => {
   const sbomOutput = path.join(FIXTURES, 'java-spring', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans java-spring fixture end-to-end', async () => {
@@ -253,7 +267,7 @@ describe('Full Pipeline — Go', () => {
   const sbomOutput = path.join(FIXTURES, 'go-api', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans go-api fixture end-to-end', async () => {
@@ -300,7 +314,7 @@ describe('Full Pipeline — Go (real-world)', () => {
   const sbomOutput = path.join(FIXTURES, 'go-service', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans go-service fixture end-to-end', async () => {
@@ -320,7 +334,7 @@ describe('Full Pipeline — Ruby', () => {
   const sbomOutput = path.join(FIXTURES, 'ruby-api', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans ruby-api fixture end-to-end', async () => {
@@ -367,7 +381,7 @@ describe('Full Pipeline — Ruby (real-world)', () => {
   const sbomOutput = path.join(FIXTURES, 'ruby-service', 'test-sbom.cdx.json');
 
   afterEach(() => {
-    if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+    cleanupArtifacts(sbomOutput);
   });
 
   it('scans ruby-service fixture end-to-end', async () => {
@@ -425,7 +439,7 @@ describe('Cross-ecosystem SBOM compliance', () => {
         expect(bom.dependencies.length).toBe(1);
         expect(bom.dependencies[0].ref).toBe('root-component');
       } finally {
-        if (existsSync(sbomOutput)) unlinkSync(sbomOutput);
+        cleanupArtifacts(sbomOutput);
       }
     }
   });

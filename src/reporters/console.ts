@@ -24,6 +24,9 @@ export class ConsoleReporter implements Reporter {
     // SBOM info
     lines.push(`  ✓ SBOM generated (${result.sbom.format}, ${result.sbom.specVersion})`);
     lines.push(`    Components: ${result.sbom.componentCount}`);
+    if (result.artifacts) {
+      lines.push(`    Also wrote: ${result.artifacts.spdx.format}, ${result.artifacts.swid.format}`);
+    }
     lines.push('');
 
     // CVE results
