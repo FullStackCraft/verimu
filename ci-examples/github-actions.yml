@@ -1,0 +1,224 @@
+# GitHub Actions workflow for Verimu SBOM generation
+#
+# Copy this file to your repository at .github/workflows/verimu.yml
+# to generate CRA-compliant SBOMs on every push and PR.
+#
+# Supports all ecosystems: npm, NuGet, pip, Cargo, Maven, Go, Ruby.
+
+name: Verimu CRA Compliance Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ─── npm / Node.js ──────────────────────────────────────────────
+
+  scan-npm:
+    name: SBOM — npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Verimu
+        run: npm install -g verimu
+
+      - name: Generate SBOM
+        run: verimu scan --project-path .
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-npm
+          path: sbom.cdx.json
+          retention-days: 90
+
+  # ─── NuGet / .NET ───────────────────────────────────────────────
+
+  # scan-nuget:
+  #   name: SBOM — NuGet
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: actions/setup-dotnet@v4
+  #       with:
+  #         dotnet-version: 8.0.x
+  #
+  #     - name: Restore & generate lock file
+  #       run: dotnet restore --use-lock-file
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #
+  #     - name: Install Verimu & scan
+  #       run: |
+  #         npm install -g verimu
+  #         verimu scan --project-path .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sbom-nuget
+  #         path: sbom.cdx.json
+  #         retention-days: 90
+
+  # ─── pip / Python ───────────────────────────────────────────────
+
+  # scan-pip:
+  #   name: SBOM — pip
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.12"
+  #
+  #     - name: Install deps & freeze
+  #       run: |
+  #         pip install -r requirements.txt
+  #         pip freeze > requirements.txt
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #
+  #     - name: Install Verimu & scan
+  #       run: |
+  #         npm install -g verimu
+  #         verimu scan --project-path .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sbom-pip
+  #         path: sbom.cdx.json
+  #         retention-days: 90
+
+  # ─── Cargo / Rust ───────────────────────────────────────────────
+
+  # scan-cargo:
+  #   name: SBOM — Cargo
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: dtolnay/rust-toolchain@stable
+  #
+  #     - name: Generate Cargo.lock (if not committed)
+  #       run: cargo generate-lockfile
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #
+  #     - name: Install Verimu & scan
+  #       run: |
+  #         npm install -g verimu
+  #         verimu scan --project-path .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sbom-cargo
+  #         path: sbom.cdx.json
+  #         retention-days: 90
+
+  # ─── Maven / Java ───────────────────────────────────────────────
+
+  # scan-maven:
+  #   name: SBOM — Maven
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: actions/setup-java@v4
+  #       with:
+  #         distribution: temurin
+  #         java-version: 21
+  #
+  #     - name: Generate dependency tree
+  #       run: mvn dependency:list -DoutputFile=dependency-tree.txt -DappendOutput=true
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #
+  #     - name: Install Verimu & scan
+  #       run: |
+  #         npm install -g verimu
+  #         verimu scan --project-path .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sbom-maven
+  #         path: sbom.cdx.json
+  #         retention-days: 90
+
+  # ─── Go ─────────────────────────────────────────────────────────
+
+  # scan-go:
+  #   name: SBOM — Go
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.22"
+  #
+  #     - name: Ensure go.sum exists
+  #       run: go mod tidy
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #
+  #     - name: Install Verimu & scan
+  #       run: |
+  #         npm install -g verimu
+  #         verimu scan --project-path .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sbom-go
+  #         path: sbom.cdx.json
+  #         retention-days: 90
+
+  # ─── Ruby / Bundler ─────────────────────────────────────────────
+
+  # scan-ruby:
+  #   name: SBOM — Ruby
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: "3.3"
+  #         bundler-cache: true
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #
+  #     - name: Install Verimu & scan
+  #       run: |
+  #         npm install -g verimu
+  #         verimu scan --project-path .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sbom-ruby
+  #         path: sbom.cdx.json
+  #         retention-days: 90

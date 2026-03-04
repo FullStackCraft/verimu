@@ -1,0 +1,77 @@
+version = 1
+requires-python = ">=3.12"
+
+[[package]]
+name = "uv-webapp"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "django" },
+    { name = "celery" },
+    { name = "redis" },
+    { name = "psycopg2-binary" },
+    { name = "gunicorn" },
+    { name = "sentry-sdk" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "coverage" },
+    { name = "black" },
+]
+
+[[package]]
+name = "django"
+version = "5.0.1"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "celery"
+version = "5.3.6"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "redis"
+version = "5.0.1"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "psycopg2-binary"
+version = "2.9.9"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "gunicorn"
+version = "21.2.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "sentry-sdk"
+version = "1.39.1"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "asgiref"
+version = "3.7.2"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "sqlparse"
+version = "0.4.4"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "pytest"
+version = "7.4.4"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "coverage"
+version = "7.4.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "black"
+version = "23.12.1"
+source = { registry = "https://pypi.org/simple" }

@@ -1,0 +1,3 @@
+# Test circular include protection
+django==5.0.1
+-r circular-b.txt

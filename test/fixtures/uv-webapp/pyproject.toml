@@ -1,0 +1,20 @@
+[project]
+name = "uv-webapp"
+version = "1.0.0"
+description = "A sample UV web application"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.0.1",
+    "celery>=5.3.6",
+    "redis>=5.0.1",
+    "psycopg2-binary>=2.9.9",
+    "gunicorn>=21.2.0",
+    "sentry-sdk>=1.39.1",
+]
+
+[dependency-groups]
+dev = ["pytest>=7.4.4", "coverage>=7.4.0", "black>=23.12.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

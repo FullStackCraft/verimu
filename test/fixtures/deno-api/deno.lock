@@ -1,0 +1,61 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@std/assert@^1.0.0": "1.0.10",
+    "jsr:@std/http@^1.0.0": "1.0.13",
+    "jsr:@oak/oak@^17.0.0": "17.1.4",
+    "npm:express@^4.18.0": "4.21.2"
+  },
+  "jsr": {
+    "@std/assert@1.0.10": {
+      "integrity": "sha256-abc123def456"
+    },
+    "@std/http@1.0.13": {
+      "integrity": "sha256-ghi789jkl012"
+    },
+    "@std/internal@1.0.6": {
+      "integrity": "sha256-mno345pqr678"
+    },
+    "@oak/oak@17.1.4": {
+      "integrity": "sha256-stu901vwx234",
+      "dependencies": [
+        "jsr:@std/http@^1.0.0",
+        "jsr:@oak/commons@^1.0.0"
+      ]
+    },
+    "@oak/commons@1.0.2": {
+      "integrity": "sha256-yza567bcd890"
+    }
+  },
+  "npm": {
+    "express@4.21.2": {
+      "integrity": "sha512-abc123...",
+      "dependencies": {
+        "body-parser": "body-parser@1.20.3",
+        "cookie": "cookie@0.7.1",
+        "debug": "debug@2.6.9"
+      }
+    },
+    "body-parser@1.20.3": {
+      "integrity": "sha512-def456...",
+      "dependencies": {
+        "bytes": "bytes@3.1.2"
+      }
+    },
+    "cookie@0.7.1": {
+      "integrity": "sha512-ghi789..."
+    },
+    "debug@2.6.9": {
+      "integrity": "sha512-jkl012...",
+      "dependencies": {
+        "ms": "ms@2.0.0"
+      }
+    },
+    "bytes@3.1.2": {
+      "integrity": "sha512-mno345..."
+    },
+    "ms@2.0.0": {
+      "integrity": "sha512-pqr678..."
+    }
+  }
+}

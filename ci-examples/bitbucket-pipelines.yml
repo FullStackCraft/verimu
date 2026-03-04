@@ -1,0 +1,113 @@
+# Bitbucket Pipelines configuration for Verimu
+#
+# Copy this file to your repository root as bitbucket-pipelines.yml
+# to run Verimu tests and generate SBOMs in Bitbucket Pipelines.
+
+image: node:20
+
+definitions:
+  caches:
+    npm: node_modules
+
+pipelines:
+  default:
+    # ─── Test Step ─────────────────────────────────────────────
+    - step:
+        name: Test
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run build:check
+          - npm test
+          - npm run build
+
+    # ─── SBOM Generation Step ──────────────────────────────────
+    - step:
+        name: Generate SBOM
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run build
+          - node scripts/run-scan.mjs
+        artifacts:
+          - "*.cdx.json"
+
+  # ─── Branch-specific pipelines ─────────────────────────────────
+  branches:
+    main:
+      - step:
+          name: Test
+          caches:
+            - npm
+          script:
+            - npm ci
+            - npm run build:check
+            - npm test
+            - npm run build
+
+      - step:
+          name: Generate SBOM
+          caches:
+            - npm
+          script:
+            - npm ci
+            - npm run build
+            - node scripts/run-scan.mjs
+          artifacts:
+            - "*.cdx.json"
+
+# ─── Example: Python project scan ─────────────────────────────────
+#
+# To scan a Python project, use a custom step:
+#
+# - step:
+#     name: Scan Python Project
+#     image: node:20
+#     script:
+#       - npm install -g verimu
+#       - verimu scan --project-path ./my-python-app
+#     artifacts:
+#       - sbom.cdx.json
+
+# ─── Example: .NET project scan ───────────────────────────────────
+#
+# - step:
+#     name: Scan .NET Project
+#     image: mcr.microsoft.com/dotnet/sdk:8.0
+#     script:
+#       - dotnet restore --use-lock-file
+#       - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#       - apt-get install -y nodejs
+#       - npm install -g verimu
+#       - verimu scan --project-path .
+#     artifacts:
+#       - sbom.cdx.json
+
+# ─── Example: Java/Maven project scan ─────────────────────────────
+#
+# - step:
+#     name: Scan Maven Project
+#     image: maven:3.9-eclipse-temurin-21
+#     script:
+#       - mvn dependency:list -DoutputFile=dependency-tree.txt -DappendOutput=true
+#       - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#       - apt-get install -y nodejs
+#       - npm install -g verimu
+#       - verimu scan --project-path .
+#     artifacts:
+#       - sbom.cdx.json
+
+# ─── Example: Rust/Cargo project scan ─────────────────────────────
+#
+# - step:
+#     name: Scan Cargo Project
+#     image: rust:1.75
+#     script:
+#       - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#       - apt-get install -y nodejs
+#       - npm install -g verimu
+#       - verimu scan --project-path .
+#     artifacts:
+#       - sbom.cdx.json

@@ -1,0 +1,104 @@
+# GitLab CI configuration for Verimu
+#
+# Copy this file to your repository root as .gitlab-ci.yml
+# to run Verimu tests and generate SBOMs in GitLab CI.
+
+stages:
+  - test
+  - scan
+
+variables:
+  NODE_VERSION: "20"
+
+# ─── Test Stage ──────────────────────────────────────────────────
+
+test:
+  stage: test
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm run build:check
+    - npm test
+    - npm run build
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+# ─── SBOM Generation Stage ──────────────────────────────────────
+#
+# Example: Generate an SBOM for the project itself.
+# In real usage, replace `scripts/run-scan.mjs` with your
+# project-specific scan configuration.
+
+sbom:
+  stage: scan
+  image: node:${NODE_VERSION}
+  needs: ["test"]
+  script:
+    - npm ci
+    - npm run build
+    - node scripts/run-scan.mjs
+  artifacts:
+    paths:
+      - "*.cdx.json"
+    expire_in: 30 days
+
+# ─── Example: Python project scan ───────────────────────────────
+#
+# .scan-python:
+#   stage: scan
+#   image: node:20
+#   script:
+#     - npm install -g verimu
+#     - verimu scan --project-path ./my-python-app
+#   artifacts:
+#     paths:
+#       - sbom.cdx.json
+
+# ─── Example: .NET project scan ─────────────────────────────────
+#
+# .scan-dotnet:
+#   stage: scan
+#   image: mcr.microsoft.com/dotnet/sdk:8.0
+#   before_script:
+#     - dotnet restore --use-lock-file
+#     - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#     - apt-get install -y nodejs
+#     - npm install -g verimu
+#   script:
+#     - verimu scan --project-path .
+#   artifacts:
+#     paths:
+#       - sbom.cdx.json
+
+# ─── Example: Java/Maven project scan ───────────────────────────
+#
+# .scan-maven:
+#   stage: scan
+#   image: maven:3.9-eclipse-temurin-21
+#   before_script:
+#     - mvn dependency:list -DoutputFile=dependency-tree.txt -DappendOutput=true
+#     - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#     - apt-get install -y nodejs
+#     - npm install -g verimu
+#   script:
+#     - verimu scan --project-path .
+#   artifacts:
+#     paths:
+#       - sbom.cdx.json
+
+# ─── Example: Rust/Cargo project scan ───────────────────────────
+#
+# .scan-cargo:
+#   stage: scan
+#   image: rust:1.75
+#   before_script:
+#     - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#     - apt-get install -y nodejs
+#     - npm install -g verimu
+#   script:
+#     - verimu scan --project-path .
+#   artifacts:
+#     paths:
+#       - sbom.cdx.json

@@ -1,0 +1,3 @@
+# This creates a circular reference back to requirements.txt
+redis==5.0.0
+-r requirements.txt

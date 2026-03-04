@@ -1,0 +1,27 @@
+name: push to gitlab and bitbucket
+
+on:
+  push:
+    branches: [pusher-workflow]
+    tags: ['*']
+  pull_request:
+    branches: [pusher-workflow]
+
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: send to gitlab 
+        run: | 
+              git fetch --unshallow
+              git remote set-url origin ${{ secrets.VERIMU_GITLAB_REPO }}
+              # git push origin ${{ vars.GITLAB_BRANCH }}
+              git push origin pusher-workflow
+              git remote set-url origin ${{ secrets.VERIMU_BITBUCKET_REPO }}
+              # git push origin ${{ vars.BITBUCKET_BRANCH }}
+              git push origin pusher-workflow

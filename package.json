@@ -1,0 +1,75 @@
+{
+  "name": "verimu",
+  "version": "0.0.10",
+  "description": "CRA compliance automation - SBOM generation, CVE monitoring, and vulnerability reporting for the EU Cyber Resilience Act.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "verimu": "./dist/cli.mjs"
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:check": "tsc --noEmit",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build:check && npm run test && npm run build",
+    "type-check": "tsc --noEmit",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major",
+    "release:prerelease": "npm version prerelease --preid rc"
+  },
+  "keywords": [
+    "cra",
+    "cyber-resilience-act",
+    "sbom",
+    "cyclonedx",
+    "cve",
+    "vulnerability",
+    "compliance",
+    "security",
+    "ntia",
+    "software-bill-of-materials",
+    "supply-chain"
+  ],
+  "author": "Verimu",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FullStackCraft/verimu"
+  },
+  "homepage": "https://verimu.com",
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "rollup": "4.59.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
+  }
+}
