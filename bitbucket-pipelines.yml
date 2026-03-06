@@ -32,30 +32,20 @@ pipelines:
           - npm test
           - npm run build
 
-    # - step:
-    #     name: Self-scan (SBOM generation)
-    #     caches:
-    #       - npm
-    #     script:
-    #       - npm ci
-    #       - npm run build
-    #       - node scripts/run-scan.mjs
-    #     artifacts:
-    #       - test-sbom.keep.cdx.json
     - step:
         name: Run Verimu self-scan
         caches:
           - npm
-        # env:
-        #   VERIMU_API_KEY: $VERIMU_API_KEY
         script:
+           - npm ci
+           - npm run build
            - node dist/cli.mjs scan \
             --path . \
             --output test-sbom.keep.cdx.json \
             --fail-on HIGH
 
   branches:
-    main:
+    selfscan:
       - step:
           name: Test (Node.js 20)
           caches:
@@ -77,23 +67,13 @@ pipelines:
             - npm test
             - npm run build
 
-      # - step:
-      #     name: Self-scan (SBOM generation)
-      #     caches:
-      #       - npm
-      #     script:
-      #       - npm ci
-      #       - npm run build
-      #       - node scripts/run-scan.mjs
-      #     artifacts:
-      #       - test-sbom.keep.cdx.json
       - step:
-        name: Run Verimu self-scan
-        caches:
+         name: Run Verimu self-scan
+         caches:
           - npm
-        # env:
-        #   VERIMU_API_KEY: $VERIMU_API_KEY
-        script:
+         script:
+           - npm ci
+           - npm run build
            - node dist/cli.mjs scan \
             --path . \
             --output test-sbom.keep.cdx.json \
