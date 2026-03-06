@@ -53,5 +53,5 @@ self-scan:
       - test-sbom.keep.cdx.json
     expire_in: 30 days
   rules:
-    - if: $CI_COMMIT_BRANCH == "selfscan"
+    - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

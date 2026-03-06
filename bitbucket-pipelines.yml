@@ -45,7 +45,7 @@ pipelines:
             --fail-on HIGH
 
   branches:
-    selfscan:
+    main:
       - step:
           name: Test (Node.js 20)
           caches:
