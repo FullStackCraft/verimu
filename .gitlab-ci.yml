@@ -6,7 +6,6 @@
 stages:
   - test
   - scan
-  - publish
 
 # ─── Test Stage ──────────────────────────────────────────────────
 
@@ -45,51 +44,14 @@ self-scan:
   script:
     - npm ci
     - npm run build
-    - node scripts/run-scan.mjs
+    - node dist/cli.mjs scan \
+     --path . \
+     --output test-sbom.keep.cdx.json \
+     --fail-on HIGH
   artifacts:
     paths:
       - test-sbom.keep.cdx.json
     expire_in: 30 days
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "selfscan"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-# ─── Publish: npm release on semver tags from main ─────────────
-#
-# Required CI/CD variables in GitLab:
-# - NPM_TOKEN (masked + protected): npm automation token with publish rights
-#
-# Recommended:
-# - Protect the version tag pattern (e.g. v* or *) so only maintainers can release.
-
-publish:npm:
-  stage: publish
-  image: node:20
-  needs: ["test:node-20", "test:node-22"]
-  script:
-    - npm ci
-    - npm run build:check
-    - npm test
-    - npm run build
-    - |
-      TAG_VERSION="${CI_COMMIT_TAG#v}"
-      PKG_VERSION="$(node -p "require('./package.json').version")"
-      if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-        echo "Tag version ($CI_COMMIT_TAG) does not match package.json version ($PKG_VERSION)."
-        exit 1
-      fi
-    - |
-      git fetch origin main
-      if ! git branch -r --contains "$CI_COMMIT_SHA" | grep -q "origin/main"; then
-        echo "Release tag commit is not on main."
-        exit 1
-      fi
-    - |
-      if [ -z "$NPM_TOKEN" ]; then
-        echo "NPM_TOKEN is required."
-        exit 1
-      fi
-      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-    - npm publish --access public
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/ && $CI_COMMIT_REF_PROTECTED == "true"'
