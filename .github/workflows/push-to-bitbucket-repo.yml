@@ -1,0 +1,21 @@
+name: Push to Verimu Bitbucket repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  pushing:
+    name: Push to Bitbucket
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Bitbucket mirror
+        run: |
+          git remote add bitbucket "${{ secrets.VERIMU_BITBUCKET_REPO }}"
+          git push bitbucket HEAD:${{ vars.BITBUCKET_BRANCH }}

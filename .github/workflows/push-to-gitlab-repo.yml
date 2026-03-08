@@ -1,0 +1,21 @@
+name: Push to Verimu GitLab repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  pushing:
+    name: Push to GitLab
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to GitLab mirror
+        run: |
+          git remote add gitlab "${{ secrets.VERIMU_GITLAB_REPO }}"
+          git push gitlab HEAD:${{ vars.GITLAB_BRANCH }}
