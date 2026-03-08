@@ -40,7 +40,7 @@ export function renderPlatformScan(projectPath: string, result: UploadResult): s
       const fix = vuln.fixedVersion ? ` → fix: ${vuln.fixedVersion}` : '';
       lines.push(`    ${severityBadge(vuln.severity)}  ${vuln.cveId}`);
       lines.push(`           ${vuln.dependencyName}@${vuln.version}${fix}`);
-      lines.push(`           ${vuln.summary.slice(0, 100)}`);
+      lines.push(`           ${(vuln.summary ?? '').slice(0, 100)}`);
       lines.push('');
     }
   }

@@ -136,12 +136,15 @@ export class VerimuApiClient {
     const map: Record<Ecosystem, string> = {
       npm: 'npm',
       pip: 'pip',
+      poetry: 'poetry',
+      uv: 'uv',
       maven: 'maven',
       nuget: 'nuget',
       go: 'gomod',
       cargo: 'cargo',
       ruby: 'bundler',
       composer: 'composer',
+      deno: 'deno',
     };
     return map[eco] ?? eco;
   }

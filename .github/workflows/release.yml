@@ -40,7 +40,7 @@ jobs:
 
   # Self-scan: run verimu against its own repo (npm ecosystem)
   self-scan:
-    name: Self-scan (SBOM generation)
+    name: Self-scan (local CLI)
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
@@ -61,8 +61,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run Verimu scan
-        run: node scripts/run-scan.mjs
+      - name: Run Verimu self-scan
+        env:
+          VERIMU_API_KEY: ${{ secrets.VERIMU_API_KEY }}
+        run: |
+          node dist/cli.mjs scan \
+            --path . \
+            --output test-sbom.keep.cdx.json \
+            --fail-on HIGH
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
