@@ -67,7 +67,7 @@ pipelines:
 #     image: node:20
 #     script:
 #       - npm install -g verimu
-#       - verimu scan --project-path ./my-python-app
+#       - verimu scan --path ./my-python-app
 #     artifacts:
 #       - sbom.cdx.json
 
@@ -81,7 +81,7 @@ pipelines:
 #       - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 #       - apt-get install -y nodejs
 #       - npm install -g verimu
-#       - verimu scan --project-path .
+#       - verimu scan --path .
 #     artifacts:
 #       - sbom.cdx.json
 
@@ -95,7 +95,7 @@ pipelines:
 #       - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 #       - apt-get install -y nodejs
 #       - npm install -g verimu
-#       - verimu scan --project-path .
+#       - verimu scan --path .
 #     artifacts:
 #       - sbom.cdx.json
 
@@ -108,6 +108,6 @@ pipelines:
 #       - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 #       - apt-get install -y nodejs
 #       - npm install -g verimu
-#       - verimu scan --project-path .
+#       - verimu scan --path .
 #     artifacts:
 #       - sbom.cdx.json

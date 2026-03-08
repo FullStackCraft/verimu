@@ -51,7 +51,7 @@ sbom:
 #   image: node:20
 #   script:
 #     - npm install -g verimu
-#     - verimu scan --project-path ./my-python-app
+#     - verimu scan --path ./my-python-app
 #   artifacts:
 #     paths:
 #       - sbom.cdx.json
@@ -67,7 +67,7 @@ sbom:
 #     - apt-get install -y nodejs
 #     - npm install -g verimu
 #   script:
-#     - verimu scan --project-path .
+#     - verimu scan --path .
 #   artifacts:
 #     paths:
 #       - sbom.cdx.json
@@ -83,7 +83,7 @@ sbom:
 #     - apt-get install -y nodejs
 #     - npm install -g verimu
 #   script:
-#     - verimu scan --project-path .
+#     - verimu scan --path .
 #   artifacts:
 #     paths:
 #       - sbom.cdx.json
@@ -98,7 +98,7 @@ sbom:
 #     - apt-get install -y nodejs
 #     - npm install -g verimu
 #   script:
-#     - verimu scan --project-path .
+#     - verimu scan --path .
 #   artifacts:
 #     paths:
 #       - sbom.cdx.json
