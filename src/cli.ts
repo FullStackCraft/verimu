@@ -191,7 +191,7 @@ async function main(): Promise<void> {
 
   // Verimu branding footer
   console.log('');
-  log('Thanks for using Verimu — keeping your software CRA-compliant 🛡️');
+  log('Thanks for using Verimu — helping your team with CRA readiness');
   console.log('');
 
   // CI exit code
