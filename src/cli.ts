@@ -64,6 +64,7 @@ interface CliArgs {
   failOnSeverity: Severity | null;
   skipCveCheck: boolean;
   skipUpload: boolean;
+  cyclonedxVersion: '1.4' | '1.5' | '1.6' | '1.7';
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -75,6 +76,7 @@ function parseArgs(argv: string[]): CliArgs {
     failOnSeverity: null,
     skipCveCheck: false,
     skipUpload: false,
+    cyclonedxVersion: '1.7',
   };
 
   let i = 0;
@@ -103,6 +105,18 @@ function parseArgs(argv: string[]): CliArgs {
       result.skipCveCheck = true;
     } else if (arg === '--skip-upload' || arg === '--offline') {
       result.skipUpload = true;
+    } else if (arg === '--cdx-version' || arg.startsWith('--cdx-version=')) {
+      const val =
+        arg === '--cdx-version'
+          ? args[++i]
+          : arg.split('=')[1];
+      if (!val || val.startsWith('--')) {
+        throw new Error('--cdx-version requires a value');
+      }
+      if (!['1.4', '1.5', '1.6', '1.7'].includes(val)) {
+        throw new Error(`Invalid CycloneDX version: ${val}`);
+      }
+      result.cyclonedxVersion = val as '1.4' | '1.5' | '1.6' | '1.7';
     }
 
     i++;
@@ -114,7 +128,15 @@ function parseArgs(argv: string[]): CliArgs {
 // ─── Main ───────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv);
+  let args: CliArgs;
+  try {
+    args = parseArgs(process.argv);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logError(msg);
+    log("Run 'npx verimu --help' for usage information");
+    process.exit(2);
+  }
 
   if (args.command === 'version') {
     console.log(`verimu ${VERSION}`);
@@ -145,6 +167,7 @@ async function main(): Promise<void> {
     projectPath: resolve(args.projectPath),
     sbomOutput: args.sbomOutput,
     skipCveCheck: args.skipCveCheck,
+    cyclonedxVersion: args.cyclonedxVersion,
     // Don't pass apiKey to scan() if --skip-upload — we'll handle upload separately for better logging
     apiKey: (apiKey && !args.skipUpload) ? undefined : undefined,
     apiBaseUrl,
@@ -218,6 +241,7 @@ function printHelp(): void {
     --fail-on <severity>   Exit 1 if vulns at or above: CRITICAL, HIGH, MEDIUM, LOW
     --skip-cve             Skip CVE vulnerability checking
     --skip-upload          Don't sync to Verimu platform (even if API key is set)
+    --cdx-version <ver>    CycloneDX spec: 1.4, 1.5, 1.6, 1.7 (default: 1.7)
 
   Environment:
     VERIMU_API_KEY         API key for Verimu platform (from app.verimu.com)
@@ -227,6 +251,7 @@ function printHelp(): void {
     npx verimu                                    # Quick scan
     VERIMU_API_KEY=vmu_xxx npx verimu             # Scan + sync to platform
     npx verimu scan --fail-on HIGH                # Fail CI on HIGH+ vulns
+    npx verimu scan --cdx-version 1.5             # Specify CycloneDX version
     npx verimu scan --path ./backend --output ./reports/sbom.json
 
   Supported ecosystems:

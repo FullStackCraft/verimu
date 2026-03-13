@@ -161,6 +161,8 @@ export interface VerimuConfig {
   sbomOutput?: string;
   /** Reserved for future per-format selection (currently all formats are generated) */
   sbomFormat?: SbomFormat;
+  /** CycloneDX spec version to generate (default: '1.7') */
+  cyclonedxVersion?: '1.4' | '1.5' | '1.6' | '1.7';
   /** Minimum severity to report (default: LOW) */
   severityThreshold?: Severity;
   /** Whether to fail CI on vulnerabilities at or above threshold */
