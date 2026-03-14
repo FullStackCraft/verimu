@@ -54,7 +54,7 @@
   "author": "Verimu",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FullStackCraft/verimu"
+    "url": "git+https://github.com/FullStackCraft/verimu.git"
   },
   "homepage": "https://verimu.com",
   "engines": {
