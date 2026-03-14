@@ -1,10 +1,16 @@
 # verimu
 
-The NPM package for `verimu`, a tool for producing CRA-compliant SBOMs via CI / CD pipelines.
+The infrastructure layer that makes CRA compliance easier to manage in engineering workflows.
+`verimu` helps teams automate SBOM generation, dependency intelligence, and vulnerability visibility across CI/CD pipelines.
 
 ## Documentation and Website
 
-[https://verimu.com](https://verimu.com)
+- Website + documentation: [https://verimu.com](https://verimu.com)
+- npm package: [https://www.npmjs.com/package/verimu](https://www.npmjs.com/package/verimu)
+
+## App Platform
+
+- [https://app.verimu.com](https://app.verimu.com)
 
 ## Supported CI / CD Platforms
 
