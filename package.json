@@ -1,6 +1,6 @@
 {
   "name": "verimu",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "CRA compliance automation - SBOM generation, CVE monitoring, and vulnerability reporting for the EU Cyber Resilience Act.",
   "type": "module",
   "exports": {
@@ -22,7 +22,7 @@
     "dist"
   ],
   "bin": {
-    "verimu": "./dist/cli.mjs"
+    "verimu": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsup",
