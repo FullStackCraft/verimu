@@ -41,13 +41,13 @@ npm test
 `verimu` can publish from GitHub Actions, GitLab CI, and Bitbucket Pipelines when a semver tag is pushed.
 Each pipeline validates:
 
-- tag is semver (`v1.2.3` or `1.2.3`)
-- tag version matches `package.json` version
+- tag is semver (i.e. `1.2.3` without a `v` prefix)
+- tag version must match `package.json` version
 - tagged commit exists on `main`
 
 ### Publish credentials
 
-- GitHub Actions (`.github/workflows/publish-npm.yml`): uses npm Trusted Publishing (OIDC), so no `NPM_TOKEN` secret is required.
+- GitHub Actions (`.github/workflows/publish-npm.yml`): uses npm Trusted Publishing (OIDC), so NO `NPM_TOKEN` secret is required.
 - GitLab and Bitbucket pipelines in this repo still use `NPM_TOKEN` (`.gitlab-ci.yml`, `bitbucket-pipelines.yml`).
 
 ### Recommended release flow
