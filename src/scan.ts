@@ -31,6 +31,7 @@ export async function scan(config: VerimuConfig): Promise<VerimuReport> {
     projectPath,
     sbomOutput = './sbom.cdx.json',
     skipCveCheck = false,
+    cyclonedxVersion = '1.7',
   } = config;
 
   // 1. Scan dependencies
@@ -38,8 +39,7 @@ export async function scan(config: VerimuConfig): Promise<VerimuReport> {
   const scanResult = await registry.detectAndScan(projectPath);
 
   // 2. Generate all supported artifacts
-  // TODO: Honor config.sbomFormat once we support user-selectable output formats.
-  const artifacts = generateSbomArtifacts(scanResult);
+  const artifacts = generateSbomArtifacts(scanResult, undefined, cyclonedxVersion);
   const sbom = artifacts.cyclonedx;
 
   // 3. Write artifacts to disk
