@@ -5,7 +5,8 @@ import { generateSbomArtifacts } from './sbom/artifacts.js';
 import { CveAggregator } from './cve/aggregator.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { VerimuApiClient } from './api/client.js';
-import type { ScanResponse } from './api/client.js';
+import { detectSource } from './core/source.js';
+import type { ScanResponse, SbomUploadBundle } from './api/client.js';
 import type { VerimuConfig, VerimuReport, Severity } from './core/types.js';
 
 /** Result of uploading scan results to the Verimu platform */
@@ -183,11 +184,9 @@ function deriveArtifactOutputPaths(cycloneDxOutput: string): {
   };
 }
 
-function buildUploadPayload(report: VerimuReport): string | {
-  cyclonedx: Record<string, unknown>;
-  spdx: Record<string, unknown>;
-  swid: string;
-} {
+function buildUploadPayload(report: VerimuReport): string | SbomUploadBundle {
+  const source = detectSource();
+
   if (!report.artifacts) {
     return report.sbom.content;
   }
@@ -196,5 +195,6 @@ function buildUploadPayload(report: VerimuReport): string | {
     cyclonedx: JSON.parse(report.artifacts.cyclonedx.content) as Record<string, unknown>,
     spdx: JSON.parse(report.artifacts.spdx.content) as Record<string, unknown>,
     swid: report.artifacts.swid.content,
+    meta: { source },
   };
 }
