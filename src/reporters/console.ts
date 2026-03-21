@@ -53,6 +53,30 @@ export class ConsoleReporter implements Reporter {
       }
     }
 
+    // Usage-context results (only when CVEs were found and context stage ran)
+    if (result.usageContext?.triggered) {
+      const findings = result.usageContext.packageFindings;
+      const directEvidence = findings.filter((f) => f.status === 'direct_evidence').length;
+      const indirectNoEvidence = findings.filter((f) => f.status === 'indirect_no_evidence').length;
+      const unsupported = findings.filter((f) => f.status === 'unsupported').length;
+      const analysisErrors = findings.filter((f) => f.status === 'analysis_error').length;
+
+      lines.push('');
+      lines.push(`  ✓ Usage context analyzed (${result.usageContext.durationMs}ms)`);
+      lines.push(`    Snippets: ${result.usageContext.totalSnippets} (±${result.usageContext.numContextLines} lines)`);
+      lines.push(
+        `    Findings: direct_evidence=${directEvidence}, ` +
+        `indirect_no_evidence=${indirectNoEvidence}, ` +
+        `unsupported=${unsupported}, analysis_error=${analysisErrors}`
+      );
+      if (result.usageContext.artifactPath) {
+        lines.push(`    Artifact: ${result.usageContext.artifactPath}`);
+      }
+      if (result.usageContext.errors.length > 0) {
+        lines.push(`    Non-fatal analyzer errors: ${result.usageContext.errors.length}`);
+      }
+    }
+
     // Sources
     const sources = result.cveCheck.sourcesQueried.join(', ');
     lines.push(`  Sources queried: ${sources} (${result.cveCheck.checkDurationMs}ms)`);

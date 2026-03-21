@@ -6,7 +6,7 @@
  *   2. Upload SBOM + trigger CVE scan
  */
 
-import type { Ecosystem } from '../core/types.js';
+import type { Ecosystem, UsageContextResult } from '../core/types.js';
 
 const DEFAULT_API_BASE = 'https://api.verimu.com';
 
@@ -55,6 +55,7 @@ export interface SbomUploadBundle {
   cyclonedx: Record<string, unknown>;
   spdx?: Record<string, unknown>;
   swid?: string;
+  usage_context?: Omit<UsageContextResult, 'artifactPath'>;
 }
 
 export class VerimuApiClient {

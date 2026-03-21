@@ -28,6 +28,14 @@ export type {
   Vulnerability,
   VulnerabilitySource,
   CveCheckResult,
+  UsageContextStatus,
+  UsageSnippetMatchKind,
+  UsageSnippet,
+  UsageContextVulnerabilityFinding,
+  UsageContextLlmPayload,
+  UsageContextEcosystemStatus,
+  UsageContextError,
+  UsageContextResult,
   VerimuReport,
   VerimuConfig,
   Ecosystem,
@@ -72,3 +80,4 @@ export { SwidTagGenerator } from './sbom/swid.js';
 export { OsvSource } from './cve/osv.js';
 export { CveAggregator } from './cve/aggregator.js';
 export { ConsoleReporter } from './reporters/console.js';
+export { UsageContextEngine } from './context/usage-context-engine.js';

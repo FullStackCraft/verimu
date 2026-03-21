@@ -5,8 +5,10 @@ import { generateSbomArtifacts } from './sbom/artifacts.js';
 import { CveAggregator } from './cve/aggregator.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { VerimuApiClient } from './api/client.js';
+import { UsageContextEngine } from './context/usage-context-engine.js';
+import { normalizeNumContextLines } from './context/snippet-extractor.js';
 import type { ScanResponse } from './api/client.js';
-import type { VerimuConfig, VerimuReport, Severity } from './core/types.js';
+import type { UsageContextResult, VerimuConfig, VerimuReport, Severity } from './core/types.js';
 
 /** Result of uploading scan results to the Verimu platform */
 export interface UploadResult {
@@ -64,6 +66,40 @@ export async function scan(config: VerimuConfig): Promise<VerimuReport> {
     cveCheck = await aggregator.check(scanResult.dependencies);
   }
 
+  // 4.5. Analyze vulnerable package usage context (only when CVEs are present)
+  let usageContext: VerimuReport['usageContext'];
+  if (cveCheck.vulnerabilities.length > 0) {
+    const engine = new UsageContextEngine();
+
+    try {
+      usageContext = await engine.analyze({
+        projectPath,
+        dependencies: scanResult.dependencies,
+        vulnerabilities: cveCheck.vulnerabilities,
+        numContextLines: config.numContextLines,
+      });
+    } catch (err: unknown) {
+      usageContext = {
+        triggered: true,
+        durationMs: 0,
+        numContextLines: normalizeNumContextLines(config.numContextLines),
+        maxSnippetsPerPackage: 20,
+        maxSnippetsTotal: 500,
+        totalSnippets: 0,
+        packageFindings: [],
+        ecosystemStatus: [],
+        errors: [{
+          analyzer: 'usage-context-engine',
+          error: err instanceof Error ? err.message : String(err),
+        }],
+        llmPayload: [],
+      };
+    }
+
+    usageContext.artifactPath = outputPaths.usageContext;
+    await writeFile(outputPaths.usageContext, JSON.stringify(usageContext, null, 2), 'utf-8');
+  }
+
   // 5. Build report
   const summary = {
     totalDependencies: scanResult.dependencies.length,
@@ -84,6 +120,7 @@ export async function scan(config: VerimuConfig): Promise<VerimuReport> {
     sbom,
     artifacts,
     cveCheck,
+    usageContext,
     summary,
     generatedAt: new Date().toISOString(),
   };
@@ -168,6 +205,7 @@ function deriveArtifactOutputPaths(cycloneDxOutput: string): {
   cyclonedx: string;
   spdx: string;
   swid: string;
+  usageContext: string;
 } {
   const parsed = parse(cycloneDxOutput);
   let baseName = parsed.name;
@@ -180,6 +218,7 @@ function deriveArtifactOutputPaths(cycloneDxOutput: string): {
     cyclonedx: cycloneDxOutput,
     spdx: join(parsed.dir, `${baseName}.spdx.json`),
     swid: join(parsed.dir, `${baseName}.swid.xml`),
+    usageContext: join(parsed.dir, `${baseName}.usage-context.json`),
   };
 }
 
@@ -187,14 +226,29 @@ function buildUploadPayload(report: VerimuReport): string | {
   cyclonedx: Record<string, unknown>;
   spdx: Record<string, unknown>;
   swid: string;
+  usage_context?: Omit<UsageContextResult, 'artifactPath'>;
 } {
   if (!report.artifacts) {
     return report.sbom.content;
   }
 
+  const usageContext = sanitizeUsageContextForUpload(report.usageContext);
+
   return {
     cyclonedx: JSON.parse(report.artifacts.cyclonedx.content) as Record<string, unknown>,
     spdx: JSON.parse(report.artifacts.spdx.content) as Record<string, unknown>,
     swid: report.artifacts.swid.content,
+    usage_context: usageContext,
   };
+}
+
+function sanitizeUsageContextForUpload(
+  usageContext: VerimuReport['usageContext'],
+): Omit<UsageContextResult, 'artifactPath'> | undefined {
+  if (!usageContext) {
+    return undefined;
+  }
+
+  const { artifactPath: _artifactPath, ...rest } = usageContext;
+  return rest;
 }
