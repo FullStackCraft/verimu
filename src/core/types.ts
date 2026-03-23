@@ -121,6 +121,123 @@ export interface CveCheckResult {
   checkDurationMs: number;
 }
 
+// ─── Vulnerability Usage Context ───────────────────────────────
+
+/** How confidently a vulnerable package is used in source code */
+export type UsageContextStatus = 'direct_evidence' | 'indirect_no_evidence' | 'unsupported' | 'analysis_error';
+
+/** Match categories for usage snippets */
+export type UsageSnippetMatchKind =
+  | 'import'
+  | 'require'
+  | 'dynamic_import'
+  | 'export_from'
+  | 'call';
+
+/** A code snippet where a vulnerable package appears to be used */
+export interface UsageSnippet {
+  /** Project-relative path to the file */
+  filePath: string;
+  /** 1-based start line of the snippet in source file */
+  startLine: number;
+  /** 1-based end line of the snippet in source file */
+  endLine: number;
+  /** Snippet text including context lines */
+  code: string;
+  /** Kind of syntax match */
+  matchKind: UsageSnippetMatchKind;
+  /** Called symbol if this snippet is a call-site match */
+  calledSymbol?: string;
+  /** Confidence score in [0, 1] */
+  confidence: number;
+}
+
+/** Usage-context outcome for one vulnerability */
+export interface UsageContextVulnerabilityFinding {
+  /** Vulnerability identifier (CVE/GHSA/etc.) */
+  vulnerabilityId: string;
+  /** Package name that is vulnerable */
+  packageName: string;
+  /** Ecosystem the package belongs to */
+  ecosystem: Ecosystem;
+  /** Whether dependency scanner marked it as direct, if known */
+  directDependency: boolean | null;
+  /** Resolution status for this package usage */
+  status: UsageContextStatus;
+  /** Matched snippets for this vulnerable package */
+  snippets: UsageSnippet[];
+  /** Number of snippets in this finding */
+  evidenceCount: number;
+  /** Optional explanatory note */
+  notes?: string;
+}
+
+/** LLM-friendly usage context payload for one vulnerability */
+export interface UsageContextLlmPayload {
+  vulnerability: {
+    id: string;
+    aliases: string[];
+    severity: Severity;
+    summary: string;
+    affectedVersionRange?: string;
+    fixedVersion?: string;
+    referenceUrl?: string;
+  };
+  package: {
+    name: string;
+    ecosystem: Ecosystem;
+    directDependency: boolean | null;
+  };
+  status: UsageContextStatus;
+  evidenceCount: number;
+  snippets: UsageSnippet[];
+  notes?: string;
+}
+
+/** Analyzer-level status summary for one ecosystem */
+export interface UsageContextEcosystemStatus {
+  ecosystem: Ecosystem;
+  analyzer: string;
+  status: 'analyzed' | 'unsupported' | 'error';
+  vulnerablePackages: number;
+  snippetsFound: number;
+  note?: string;
+}
+
+/** Non-fatal usage-context analysis error */
+export interface UsageContextError {
+  analyzer: string;
+  ecosystem?: Ecosystem;
+  packageName?: string;
+  error: string;
+}
+
+/** Complete usage-context output for a scan */
+export interface UsageContextResult {
+  /** Whether usage analysis was executed */
+  triggered: boolean;
+  /** Scan duration in milliseconds */
+  durationMs: number;
+  /** Effective context lines setting (±N around each match) */
+  numContextLines: number;
+  /** Package-level snippet cap */
+  maxSnippetsPerPackage: number;
+  /** Global snippet cap */
+  maxSnippetsTotal: number;
+  /** Total snippets emitted */
+  totalSnippets: number;
+  /** Artifact path if written to disk */
+  artifactPath?: string;
+  /** Per-vulnerability findings */
+  packageFindings: UsageContextVulnerabilityFinding[];
+  /** Ecosystem-level analyzer status */
+  ecosystemStatus: UsageContextEcosystemStatus[];
+  /** Non-fatal analysis errors */
+  errors: UsageContextError[];
+  /** LLM-ready payload entries */
+  llmPayload: UsageContextLlmPayload[];
+}
+
 // ─── Scan Pipeline Output ───────────────────────────────────────
 
 /** Complete output of a Verimu scan */
@@ -137,6 +254,8 @@ export interface VerimuReport {
   artifacts?: SbomArtifacts;
   /** CVE check results */
   cveCheck: CveCheckResult;
+  /** Optional usage-context analysis for vulnerable packages */
+  usageContext?: UsageContextResult;
   /** Overall summary */
   summary: {
     totalDependencies: number;
@@ -173,6 +292,8 @@ export interface VerimuConfig {
   apiBaseUrl?: string;
   /** Skip CVE checking (just generate SBOM) */
   skipCveCheck?: boolean;
+  /** Optional context lines around usage snippets (default: 4, clamped to 0..20) */
+  numContextLines?: number;
 }
 
 // ─── generateSbom() Input / Output ─────────────────────────────

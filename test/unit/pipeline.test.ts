@@ -59,6 +59,7 @@ describe('Full Pipeline — scan()', () => {
     // CVE check was skipped
     expect(report.cveCheck.vulnerabilities).toHaveLength(0);
     expect(report.cveCheck.sourcesQueried).toHaveLength(0);
+    expect(report.usageContext).toBeUndefined();
 
     // Summary
     expect(report.summary.totalDependencies).toBe(report.project.dependencyCount);
@@ -185,5 +186,77 @@ describe('ConsoleReporter', () => {
     expect(output).toContain('CVE-2024-5678');
     expect(output).toContain('Critical: 1');
     expect(output).toContain('Medium: 1');
+  });
+
+  it('prints usage-context summary when present', () => {
+    const reporter = new ConsoleReporter();
+    const report: VerimuReport = {
+      project: { path: '/test/my-app', ecosystem: 'npm', dependencyCount: 1 },
+      sbom: { format: 'cyclonedx-json', specVersion: '1.7', content: '{}', componentCount: 1, generatedAt: '' },
+      cveCheck: {
+        vulnerabilities: [
+          {
+            id: 'CVE-2024-29041',
+            aliases: ['GHSA-rv95-896h-c2yt'],
+            summary: 'Express open redirect',
+            severity: 'MEDIUM',
+            packageName: 'express',
+            ecosystem: 'npm',
+            exploitedInWild: false,
+            source: 'osv',
+          },
+        ],
+        sourcesQueried: ['osv'],
+        sourceErrors: [],
+        checkDurationMs: 120,
+      },
+      usageContext: {
+        triggered: true,
+        durationMs: 30,
+        numContextLines: 4,
+        maxSnippetsPerPackage: 20,
+        maxSnippetsTotal: 500,
+        totalSnippets: 2,
+        artifactPath: '/tmp/report.usage-context.json',
+        packageFindings: [
+          {
+            vulnerabilityId: 'CVE-2024-29041',
+            packageName: 'express',
+            ecosystem: 'npm',
+            directDependency: true,
+            status: 'direct_evidence',
+            evidenceCount: 2,
+            snippets: [
+              {
+                filePath: 'src/server.js',
+                startLine: 1,
+                endLine: 3,
+                code: 'import express from \"express\";',
+                matchKind: 'import',
+                confidence: 0.9,
+              },
+            ],
+          },
+        ],
+        ecosystemStatus: [
+          {
+            ecosystem: 'npm',
+            analyzer: 'js-ast-analyzer',
+            status: 'analyzed',
+            vulnerablePackages: 1,
+            snippetsFound: 2,
+          },
+        ],
+        errors: [],
+        llmPayload: [],
+      },
+      summary: { totalDependencies: 1, totalVulnerabilities: 1, critical: 0, high: 0, medium: 1, low: 0, exploitedInWild: 0 },
+      generatedAt: new Date().toISOString(),
+    };
+
+    const output = reporter.report(report);
+    expect(output).toContain('Usage context analyzed');
+    expect(output).toContain('Artifact: /tmp/report.usage-context.json');
+    expect(output).toContain('direct_evidence=1');
   });
 });

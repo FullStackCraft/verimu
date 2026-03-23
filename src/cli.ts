@@ -21,6 +21,7 @@
 
 import { resolve } from 'path';
 import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 import { scan, shouldFailCi, uploadToVerimu } from './scan.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { renderPlatformScan } from './reporters/platform.js';
@@ -65,9 +66,10 @@ interface CliArgs {
   skipCveCheck: boolean;
   skipUpload: boolean;
   cyclonedxVersion: '1.4' | '1.5' | '1.6' | '1.7';
+  contextLines?: number;
 }
 
-function parseArgs(argv: string[]): CliArgs {
+export function parseArgs(argv: string[]): CliArgs {
   const args = argv.slice(2); // strip node + script path
   const result: CliArgs = {
     command: 'scan',
@@ -77,6 +79,7 @@ function parseArgs(argv: string[]): CliArgs {
     skipCveCheck: false,
     skipUpload: false,
     cyclonedxVersion: '1.7',
+    contextLines: undefined,
   };
 
   let i = 0;
@@ -105,6 +108,17 @@ function parseArgs(argv: string[]): CliArgs {
       result.skipCveCheck = true;
     } else if (arg === '--skip-upload' || arg === '--offline') {
       result.skipUpload = true;
+    } else if (arg === '--context-lines' || arg.startsWith('--context-lines=')) {
+      const val = arg === '--context-lines' ? args[++i] : arg.split('=')[1];
+      if (!val || val.startsWith('--')) {
+        throw new Error('--context-lines requires a numeric value');
+      }
+
+      const parsed = Number.parseInt(val, 10);
+      if (!Number.isFinite(parsed)) {
+        throw new Error(`Invalid --context-lines value: ${val}`);
+      }
+      result.contextLines = parsed;
     } else if (arg === '--cdx-version' || arg.startsWith('--cdx-version=')) {
       const val =
         arg === '--cdx-version'
@@ -171,6 +185,7 @@ async function main(): Promise<void> {
     // Don't pass apiKey to scan() if --skip-upload — we'll handle upload separately for better logging
     apiKey: (apiKey && !args.skipUpload) ? undefined : undefined,
     apiBaseUrl,
+    numContextLines: args.contextLines,
   };
 
   // Run scan
@@ -241,6 +256,7 @@ function printHelp(): void {
     --fail-on <severity>   Exit 1 if vulns at or above: CRITICAL, HIGH, MEDIUM, LOW
     --skip-cve             Skip CVE vulnerability checking
     --skip-upload          Don't sync to Verimu platform (even if API key is set)
+    --context-lines <n>    Snippet context lines around matches (default: 4, clamped to 0..20)
     --cdx-version <ver>    CycloneDX spec: 1.4, 1.5, 1.6, 1.7 (default: 1.7)
 
   Environment:
@@ -251,6 +267,7 @@ function printHelp(): void {
     npx verimu                                    # Quick scan
     VERIMU_API_KEY=vmu_xxx npx verimu             # Scan + sync to platform
     npx verimu scan --fail-on HIGH                # Fail CI on HIGH+ vulns
+    npx verimu scan --context-lines 8             # Wider context around usage snippets
     npx verimu scan --cdx-version 1.5             # Specify CycloneDX version
     npx verimu scan --path ./backend --output ./reports/sbom.json
 
@@ -265,7 +282,13 @@ function printHelp(): void {
 `);
 }
 
-main().catch((err) => {
-  console.error('Fatal:', err);
-  process.exit(2);
-});
+const isDirectRun = process.argv[1]
+  ? resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+  : false;
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error('Fatal:', err);
+    process.exit(2);
+  });
+}
