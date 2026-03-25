@@ -1,4 +1,4 @@
-import { relative } from 'path';
+import { relative, sep } from 'path';
 import type { UsageSnippet, UsageSnippetMatchKind } from '../core/types.js';
 
 export const DEFAULT_NUM_CONTEXT_LINES = 4;
@@ -44,7 +44,7 @@ export function buildSnippet(params: {
   const code = lines.slice(startLine - 1, endLine).join('\n');
 
   return {
-    filePath: relative(projectPath, filePath),
+    filePath: relative(projectPath, filePath).split(sep).join('/'),
     startLine,
     endLine,
     code,
