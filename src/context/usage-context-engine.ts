@@ -16,7 +16,13 @@ import type {
   VulnerablePackageInput,
 } from './analyzers/analyzer.interface.js';
 import { JsAstAnalyzer } from './analyzers/js-ast-analyzer.js';
-import { UnsupportedAnalyzer } from './analyzers/unsupported-analyzer.js';
+import { PythonAstAnalyzer } from './analyzers/python-ast-analyzer.js';
+import { JavaAstAnalyzer } from './analyzers/java-ast-analyzer.js';
+import { DotnetAstAnalyzer } from './analyzers/dotnet-ast-analyzer.js';
+import { RustAstAnalyzer } from './analyzers/rust-ast-analyzer.js';
+import { GoAstAnalyzer } from './analyzers/go-ast-analyzer.js';
+import { RubyAstAnalyzer } from './analyzers/ruby-ast-analyzer.js';
+import { PhpAstAnalyzer } from './analyzers/php-ast-analyzer.js';
 
 const DEFAULT_MAX_SNIPPETS_PER_PACKAGE = 20;
 const DEFAULT_MAX_SNIPPETS_TOTAL = 500;
@@ -36,41 +42,13 @@ export class UsageContextEngine {
   constructor(analyzers?: UsageContextAnalyzer[]) {
     this.analyzers = analyzers ?? [
       new JsAstAnalyzer(),
-      new UnsupportedAnalyzer(
-        'python-ast-analyzer',
-        ['pip', 'poetry', 'uv'],
-        'Python AST analyzer is not yet implemented in this release',
-      ),
-      new UnsupportedAnalyzer(
-        'java-ast-analyzer',
-        ['maven'],
-        'Java AST analyzer is not yet implemented in this release',
-      ),
-      new UnsupportedAnalyzer(
-        'dotnet-ast-analyzer',
-        ['nuget'],
-        'NuGet/C# AST analyzer is not yet implemented in this release',
-      ),
-      new UnsupportedAnalyzer(
-        'rust-ast-analyzer',
-        ['cargo'],
-        'Rust AST analyzer is not yet implemented in this release',
-      ),
-      new UnsupportedAnalyzer(
-        'go-ast-analyzer',
-        ['go'],
-        'Go AST analyzer is not yet implemented in this release',
-      ),
-      new UnsupportedAnalyzer(
-        'ruby-ast-analyzer',
-        ['ruby'],
-        'Ruby AST analyzer is not yet implemented in this release',
-      ),
-      new UnsupportedAnalyzer(
-        'php-ast-analyzer',
-        ['composer'],
-        'PHP AST analyzer is not yet implemented in this release',
-      ),
+      new PythonAstAnalyzer(),
+      new JavaAstAnalyzer(),
+      new DotnetAstAnalyzer(),
+      new RustAstAnalyzer(),
+      new GoAstAnalyzer(),
+      new RubyAstAnalyzer(),
+      new PhpAstAnalyzer(),
     ];
   }
 

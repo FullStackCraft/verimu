@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
+import traverseModule from '@babel/traverse';
 import {
   isIdentifier,
   isImportSpecifier,
@@ -73,6 +73,9 @@ interface MatchCandidate {
   confidence: number;
 }
 
+type TraverseVisitor = Record<string, unknown>;
+type TraverseFunction = (node: unknown, visitor: TraverseVisitor) => void;
+
 export class JsAstAnalyzer implements UsageContextAnalyzer {
   readonly name = 'js-ast-analyzer';
   private readonly ecosystems = new Set<Ecosystem>(['npm', 'deno']);
@@ -82,6 +85,25 @@ export class JsAstAnalyzer implements UsageContextAnalyzer {
   }
 
   async analyze(context: AnalyzerRunContext): Promise<AnalyzerRunResult> {
+    const traverseFn = resolveTraverseFunction(traverseModule);
+    if (!traverseFn) {
+      return {
+        packages: context.packages.map((pkg) => ({
+          packageName: pkg.packageName,
+          ecosystem: pkg.ecosystem,
+          status: 'analysis_error',
+          snippets: [],
+          notes: 'Failed to resolve @babel/traverse runtime export',
+        })),
+        errors: [{
+          analyzer: this.name,
+          ecosystem: context.ecosystem,
+          error: 'Failed to resolve @babel/traverse runtime export',
+        }],
+        snippetsProduced: 0,
+      };
+    }
+
     const packageMap = this.buildPackageMaps(context.packages);
     const resultMap = new Map<string, PackageAnalysisResult>();
     const snippetKeyMap = new Map<string, Set<string>>();
@@ -166,7 +188,7 @@ export class JsAstAnalyzer implements UsageContextAnalyzer {
         matchCandidates.push({ packageKey, line, matchKind, calledSymbol, confidence });
       };
 
-      (traverse as unknown as (node: unknown, visitor: Record<string, unknown>) => void)(ast, {
+      traverseFn(ast, {
         ImportDeclaration: (path: any) => {
           const source = path.node.source;
           if (!isStringLiteral(source)) return;
@@ -326,6 +348,25 @@ export class JsAstAnalyzer implements UsageContextAnalyzer {
   private packageKey(ecosystem: Ecosystem, packageName: string): string {
     return `${ecosystem}::${packageName}`;
   }
+}
+
+export function resolveTraverseFunction(moduleValue: unknown): TraverseFunction | null {
+  if (typeof moduleValue === 'function') {
+    return moduleValue as TraverseFunction;
+  }
+
+  if (
+    typeof moduleValue === 'object' &&
+    moduleValue !== null &&
+    'default' in moduleValue
+  ) {
+    const candidate = (moduleValue as { default?: unknown }).default;
+    if (typeof candidate === 'function') {
+      return candidate as TraverseFunction;
+    }
+  }
+
+  return null;
 }
 
 async function collectSourceFiles(rootPath: string): Promise<string[]> {

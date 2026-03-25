@@ -46,19 +46,21 @@ You can configure snippet context size with:
 - `--context-lines <n>` (default `4`, clamped to `0..20`)
 - Programmatic API: `numContextLines?: number` in `scan()` config
 
-### Analyzer Matrix
+### Analyzer Matrix (v0.0.19)
 
-| Ecosystem in Verimu | Primary parser choice | Tree-sitter fallback | v1 evidence target |
-|---|---|---|---|
-| npm / yarn / pnpm | `@babel/parser` + `@babel/traverse` | `tree-sitter-javascript` + `tree-sitter-typescript` | imports/requires + nearby calls |
-| deno | `@babel/parser` (JS/TS/TSX + specifier handling) | same JS/TS tree-sitter fallback | import and call evidence |
-| pip / poetry / uv | Python stdlib `ast` (`python3`) | `tree-sitter-python` | import/from-import + call evidence |
-| maven | `java-parser` | `tree-sitter-java` | import + method invocation evidence |
-| nuget | Roslyn helper (`dotnet` + `Microsoft.CodeAnalysis.CSharp`) | `tree-sitter-c-sharp` | `using` + invocation evidence |
-| cargo | Rust helper using `syn` | `tree-sitter-rust` | `use` + function/method call evidence |
-| go | `go/parser` + `go/ast` | `tree-sitter-go` | import + selector/call evidence |
-| ruby | stdlib `Ripper` (`ruby`) | `tree-sitter-ruby` | require/include + call evidence |
-| composer (PHP) | `php-parser` | `tree-sitter-php` | `use`/`require` + call evidence |
+| Ecosystem in Verimu | Analyzer strategy | Evidence targets |
+|---|---|---|
+| npm / yarn / pnpm | Babel parse + traverse | imports/requires/exports + nearby calls |
+| deno | Babel parse + traverse | imports + nearby calls |
+| pip / poetry / uv | Python source pattern analyzer | `import` / `from ... import ...` + calls |
+| maven | Java source pattern analyzer | `import` + method/static calls |
+| nuget | C# source pattern analyzer | `using` + namespace/type calls |
+| cargo | Rust source pattern analyzer | `use` / `extern crate` + `::`/method calls |
+| go | Go source pattern analyzer | `import` + selector/function calls |
+| ruby | Ruby source pattern analyzer | `require` / `include` + constant/module calls |
+| composer (PHP) | PHP source pattern analyzer | `use` / `require` + static/constructor calls |
+
+All analyzers are fail-open (non-fatal): a parser/runtime issue only downgrades usage-context status for that ecosystem/package and never aborts SBOM/CVE scanning.
 
 ## Development
 

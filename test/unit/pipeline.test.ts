@@ -258,5 +258,7 @@ describe('ConsoleReporter', () => {
     expect(output).toContain('Usage context analyzed');
     expect(output).toContain('Artifact: /tmp/report.usage-context.json');
     expect(output).toContain('direct_evidence=1');
+    expect(output).toContain('Analyzer status:');
+    expect(output).toContain('npm: analyzed via js-ast-analyzer');
   });
 });

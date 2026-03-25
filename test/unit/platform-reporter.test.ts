@@ -123,4 +123,50 @@ describe('renderPlatformScan()', () => {
     expect(output).toContain('Regular expression denial of service in minimatch');
     expect(output).toContain('minimatch@3.1.5 → fix: 10.2.4');
   });
+
+  it('deduplicates duplicate backend vulnerabilities for the same dependency/version/CVE', () => {
+    const result: Parameters<typeof renderPlatformScan>[1] = {
+      projectId: 'project-1',
+      projectCreated: false,
+      totalDependencies: 1,
+      vulnerableDependencies: 1,
+      dashboardUrl: 'https://app.verimu.com/dashboard/projects/project-1',
+      scanResponse: {
+        project: {
+          id: 'project-1',
+          name: 'verimu.com',
+        },
+        scan_results: [
+          {
+            dependency_id: 'dep-1',
+            dependency_name: 'github.com/dgrijalva/jwt-go',
+            version: 'v3.2.0',
+            vulnerabilities: [
+              {
+                cve_id: 'CVE-2020-26160',
+                severity: 'HIGH',
+                summary: 'Authorization bypass in github.com/dgrijalva/jwt-go',
+              },
+              {
+                cve_id: 'CVE-2020-26160',
+                severity: null,
+                description: 'Authorization bypass in github.com/dgrijalva/jwt-go',
+              },
+            ],
+          },
+        ],
+        summary: {
+          total_dependencies: 1,
+          vulnerable_dependencies: 1,
+        },
+      },
+    };
+
+    const output = renderPlatformScan('/tmp/verimu.com', result);
+    const count = output.split('CVE-2020-26160').length - 1;
+
+    expect(count).toBe(1);
+    expect(output).toContain('[HIGH]');
+    expect(output).toContain('Total: 1');
+  });
 });

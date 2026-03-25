@@ -69,6 +69,15 @@ export class ConsoleReporter implements Reporter {
         `indirect_no_evidence=${indirectNoEvidence}, ` +
         `unsupported=${unsupported}, analysis_error=${analysisErrors}`
       );
+      if (result.usageContext.ecosystemStatus.length > 0) {
+        lines.push('    Analyzer status:');
+        for (const status of result.usageContext.ecosystemStatus) {
+          const note = status.note ? ` (${status.note})` : '';
+          lines.push(
+            `      ${status.ecosystem}: ${status.status} via ${status.analyzer}${note}`,
+          );
+        }
+      }
       if (result.usageContext.artifactPath) {
         lines.push(`    Artifact: ${result.usageContext.artifactPath}`);
       }

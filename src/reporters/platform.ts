@@ -57,16 +57,31 @@ export function renderPlatformScan(projectPath: string, result: UploadResult): s
 }
 
 function collectVulnerabilities(result: UploadResult): PlatformVulnerability[] {
-  return (result.scanResponse.scan_results ?? []).flatMap((scanResult) =>
-    (scanResult.vulnerabilities ?? []).map((vuln) => ({
-      dependencyName: scanResult.dependency_name,
-      version: scanResult.version,
-      cveId: vuln.cve_id,
-      severity: normalizeSeverity(vuln.severity ?? 'UNKNOWN'),
-      summary: pickSummary(vuln),
-      fixedVersion: pickFixedVersion(vuln),
-    }))
-  );
+  const deduped = new Map<string, PlatformVulnerability>();
+
+  for (const scanResult of result.scanResponse.scan_results ?? []) {
+    for (const vuln of scanResult.vulnerabilities ?? []) {
+      const next: PlatformVulnerability = {
+        dependencyName: scanResult.dependency_name,
+        version: scanResult.version,
+        cveId: vuln.cve_id,
+        severity: normalizeSeverity(vuln.severity ?? 'UNKNOWN'),
+        summary: pickSummary(vuln),
+        fixedVersion: pickFixedVersion(vuln),
+      };
+
+      const key = `${next.dependencyName}::${next.version}::${next.cveId}`;
+      const existing = deduped.get(key);
+      if (!existing) {
+        deduped.set(key, next);
+        continue;
+      }
+
+      deduped.set(key, mergeVulnerability(existing, next));
+    }
+  }
+
+  return Array.from(deduped.values());
 }
 
 function pickSummary(vuln: BackendVulnerability): string {
@@ -103,6 +118,36 @@ function normalizeSeverity(severity: string): Severity {
     default:
       return 'UNKNOWN';
   }
+}
+
+function mergeVulnerability(
+  current: PlatformVulnerability,
+  incoming: PlatformVulnerability,
+): PlatformVulnerability {
+  const severity = severityOrder(incoming.severity) < severityOrder(current.severity)
+    ? incoming.severity
+    : current.severity;
+
+  const summary = pickPreferredSummary(current.summary, incoming.summary);
+  const fixedVersion = current.fixedVersion ?? incoming.fixedVersion ?? null;
+
+  return {
+    ...current,
+    severity,
+    summary,
+    fixedVersion,
+  };
+}
+
+function pickPreferredSummary(a: string, b: string): string {
+  const normalizedA = (a ?? '').trim();
+  const normalizedB = (b ?? '').trim();
+
+  if (!normalizedA) return normalizedB || 'No description available';
+  if (!normalizedB) return normalizedA;
+  if (normalizedA === 'No description available') return normalizedB;
+  if (normalizedB === 'No description available') return normalizedA;
+  return normalizedB.length > normalizedA.length ? normalizedB : normalizedA;
 }
 
 function summarizeBySeverity(severities: Severity[]): Record<Severity, number> {
