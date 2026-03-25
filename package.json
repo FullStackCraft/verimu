@@ -22,7 +22,7 @@
     "dist"
   ],
   "bin": {
-    "verimu": "dist/cli.js"
+    "verimu": "dist/cli.mjs"
   },
   "scripts": {
     "build": "tsup",
