@@ -281,14 +281,7 @@ function printHelp(): void {
   Dashboard: https://app.verimu.com
 `);
 }
-
-const isDirectRun = process.argv[1]
-  ? resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-  : false;
-
-if (isDirectRun) {
-  main().catch((err) => {
-    console.error('Fatal:', err);
-    process.exit(2);
-  });
-}
+main().catch((err) => {
+  console.error('Fatal:', err);
+  process.exit(2);
+});
