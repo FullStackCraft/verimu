@@ -7,6 +7,8 @@ export { generateSbom } from './generate-sbom.js';
 export { generateSpdxSbom } from './generate-spdx.js';
 export { generateSwidTag } from './generate-swid.js';
 export { scan, shouldFailCi, printReport, uploadToVerimu } from './scan.js';
+export { detectSource } from './core/source.js';
+export type { SbomSource } from './core/source.js';
 
 // ─── Types ──────────────────────────────────────────────────────
 

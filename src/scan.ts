@@ -5,9 +5,10 @@ import { generateSbomArtifacts } from './sbom/artifacts.js';
 import { CveAggregator } from './cve/aggregator.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { VerimuApiClient } from './api/client.js';
+import { detectSource } from './core/source.js';
 import { UsageContextEngine } from './context/usage-context-engine.js';
 import { normalizeNumContextLines } from './context/snippet-extractor.js';
-import type { ScanResponse } from './api/client.js';
+import type { ScanResponse, SbomUploadBundle } from './api/client.js';
 import type { UsageContextResult, VerimuConfig, VerimuReport, Severity } from './core/types.js';
 
 /** Result of uploading scan results to the Verimu platform */
@@ -222,12 +223,9 @@ function deriveArtifactOutputPaths(cycloneDxOutput: string): {
   };
 }
 
-function buildUploadPayload(report: VerimuReport): string | {
-  cyclonedx: Record<string, unknown>;
-  spdx: Record<string, unknown>;
-  swid: string;
-  usage_context?: Omit<UsageContextResult, 'artifactPath'>;
-} {
+function buildUploadPayload(report: VerimuReport): string | SbomUploadBundle {
+  const source = detectSource();
+
   if (!report.artifacts) {
     return report.sbom.content;
   }
@@ -239,6 +237,7 @@ function buildUploadPayload(report: VerimuReport): string | {
     spdx: JSON.parse(report.artifacts.spdx.content) as Record<string, unknown>,
     swid: report.artifacts.swid.content,
     usage_context: usageContext,
+    meta: { source },
   };
 }
 
@@ -252,3 +251,4 @@ function sanitizeUsageContextForUpload(
   const { artifactPath: _artifactPath, ...rest } = usageContext;
   return rest;
 }
+

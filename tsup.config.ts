@@ -17,7 +17,7 @@ export default defineConfig([
       };
     },
   },
-  // CLI build (ESM only — runs via `node dist/cli.js`)
+  // CLI build (ESM only — runs via `node dist/cli.mjs`)
   {
     entry: ['src/cli.ts'],
     format: ['esm'],
@@ -26,7 +26,7 @@ export default defineConfig([
     target: 'node20',
     outDir: 'dist',
     outExtension() {
-      return { js: '.js' };
+      return { js: '.mjs' };
     },
     banner: {
       js: '#!/usr/bin/env node',

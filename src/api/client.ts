@@ -7,6 +7,7 @@
  */
 
 import type { Ecosystem, UsageContextResult } from '../core/types.js';
+import type { SbomSource } from '../core/source.js';
 
 const DEFAULT_API_BASE = 'https://api.verimu.com';
 
@@ -55,6 +56,10 @@ export interface SbomUploadBundle {
   cyclonedx: Record<string, unknown>;
   spdx?: Record<string, unknown>;
   swid?: string;
+  meta?: {
+    source?: SbomSource;
+    commit_sha?: string;
+  };
   usage_context?: Omit<UsageContextResult, 'artifactPath'>;
 }
 
