@@ -21,11 +21,11 @@
 
 import { resolve } from 'path';
 import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
 import { scan, shouldFailCi, uploadToVerimu } from './scan.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { renderPlatformScan } from './reporters/platform.js';
-import type { VerimuConfig, Severity, VerimuReport } from './core/types.js';
+import { MultiProjectOrchestrator } from './discovery/index.js';
+import type { VerimuConfig, Severity, VerimuReport, MultiProjectScanResult } from './core/types.js';
 
 // ─── Version & branding ─────────────────────────────────────────
 
@@ -67,6 +67,9 @@ interface CliArgs {
   skipUpload: boolean;
   cyclonedxVersion: '1.4' | '1.5' | '1.6' | '1.7';
   contextLines?: number;
+  groupName?: string;
+  recursive: boolean;  // true by default, use --no-recursive to disable
+  exclude?: string[];
 }
 
 export function parseArgs(argv: string[]): CliArgs {
@@ -80,6 +83,9 @@ export function parseArgs(argv: string[]): CliArgs {
     skipUpload: false,
     cyclonedxVersion: '1.7',
     contextLines: undefined,
+    groupName: undefined,
+    recursive: true,  // Recursive by default
+    exclude: undefined,
   };
 
   let i = 0;
@@ -131,6 +137,22 @@ export function parseArgs(argv: string[]): CliArgs {
         throw new Error(`Invalid CycloneDX version: ${val}`);
       }
       result.cyclonedxVersion = val as '1.4' | '1.5' | '1.6' | '1.7';
+    } else if (arg === '--group-name' || arg.startsWith('--group-name=')) {
+      const val = arg.startsWith('--group-name=')
+        ? arg.split('=')[1]
+        : args[++i];
+      if (!val || val.startsWith('--')) {
+        throw new Error('--group-name requires a value');
+      }
+      result.groupName = val;
+    } else if (arg === '--no-recursive' || arg === '--not-recursive') {
+      result.recursive = false;
+    } else if (arg === '--exclude') {
+      const val = args[++i];
+      if (!val || val.startsWith('--')) {
+        throw new Error('--exclude requires a comma-separated list of patterns');
+      }
+      result.exclude = val.split(',').map(p => p.trim());
     }
 
     i++;
@@ -186,9 +208,41 @@ async function main(): Promise<void> {
     apiKey: (apiKey && !args.skipUpload) ? undefined : undefined,
     apiBaseUrl,
     numContextLines: args.contextLines,
+    groupName: args.groupName,
   };
 
-  // Run scan
+  // Handle recursive mode (default behavior)
+  if (args.recursive) {
+    const orchestrator = new MultiProjectOrchestrator();
+
+    let result: MultiProjectScanResult;
+    try {
+      result = await orchestrator.scanAll({
+        ...config,
+        recursive: true,
+        exclude: args.exclude,
+        // Pass API key for platform uploads
+        apiKey: (apiKey && !args.skipUpload) ? apiKey : undefined,
+        apiBaseUrl,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logError(msg);
+      process.exit(2);
+    }
+
+    // Print summary
+    printMultiProjectSummary(result);
+
+    // Exit with error if any scans failed
+    if (result.failed.length > 0) {
+      process.exit(1);
+    }
+
+    return;
+  }
+
+  // Run single project scan
   let report: VerimuReport;
   try {
     report = await scan(config);
@@ -239,12 +293,56 @@ async function main(): Promise<void> {
   }
 }
 
+function printMultiProjectSummary(result: MultiProjectScanResult): void {
+  console.log('\n' + '─'.repeat(60));
+  console.log('Multi-Project Scan Summary');
+  console.log('─'.repeat(60));
+
+  console.log(`\nProjects discovered: ${result.totalDiscovered}`);
+  console.log(`  ✓ Successful: ${result.successful.length}`);
+  console.log(`  ✗ Failed: ${result.failed.length}`);
+
+  if (result.successful.length > 0) {
+    const totalDeps = result.successful.reduce(
+      (sum, r) => sum + r.report.summary.totalDependencies,
+      0
+    );
+    const totalVulns = result.successful.reduce(
+      (sum, r) => sum + r.report.summary.totalVulnerabilities,
+      0
+    );
+
+    console.log(`\nTotal dependencies: ${totalDeps}`);
+    console.log(`Total vulnerabilities: ${totalVulns}`);
+
+    // Breakdown by severity
+    const critical = result.successful.reduce((sum, r) => sum + r.report.summary.critical, 0);
+    const high = result.successful.reduce((sum, r) => sum + r.report.summary.high, 0);
+    const medium = result.successful.reduce((sum, r) => sum + r.report.summary.medium, 0);
+    const low = result.successful.reduce((sum, r) => sum + r.report.summary.low, 0);
+
+    if (totalVulns > 0) {
+      console.log(`  Critical: ${critical}, High: ${high}, Medium: ${medium}, Low: ${low}`);
+    }
+  }
+
+  if (result.failed.length > 0) {
+    console.log('\nFailed projects:');
+    for (const f of result.failed) {
+      console.log(`  • ${f.project.relativePath}: ${f.error}`);
+    }
+  }
+
+  console.log(`\nCompleted in ${(result.durationMs / 1000).toFixed(2)}s`);
+  console.log('');
+}
+
 function printHelp(): void {
   console.log(`
   Verimu — CRA Compliance Scanner
 
   Usage:
-    verimu                          Scan current directory
+    verimu                          Scan current directory (recursively)
     verimu scan [options]           Full scan (SBOM + CVE check)
     verimu generate-sbom [options]  Generate SBOM only (no CVE check)
     verimu help                     Show this help
@@ -253,23 +351,35 @@ function printHelp(): void {
   Options:
     --path, -p <dir>       Project directory to scan (default: .)
     --output, -o <file>    CycloneDX output path (SPDX/SWID are written alongside it)
+    --group-name <name>    Group name for organizing related projects in dashboard
     --fail-on <severity>   Exit 1 if vulns at or above: CRITICAL, HIGH, MEDIUM, LOW
     --skip-cve             Skip CVE vulnerability checking
     --skip-upload          Don't sync to Verimu platform (even if API key is set)
     --context-lines <n>    Snippet context lines around matches (default: 4, clamped to 0..20)
     --cdx-version <ver>    CycloneDX spec: 1.4, 1.5, 1.6, 1.7 (default: 1.7)
 
+  Project Discovery:
+    --no-recursive         Disable recursive discovery (scan only root directory)
+    --exclude <patterns>   Exclude paths matching patterns (comma-separated globs)
+
+  Note: Verimu automatically discovers all projects recursively by default.
+  For monorepos with multiple lockfiles, projects are auto-grouped by directory name.
+  Single lockfile projects are treated normally without grouping.
+
   Environment:
     VERIMU_API_KEY         API key for Verimu platform (from app.verimu.com)
     VERIMU_API_URL         Custom API URL (default: https://api.verimu.com)
 
   Examples:
-    npx verimu                                    # Quick scan
+    npx verimu                                    # Scan all projects recursively
     VERIMU_API_KEY=vmu_xxx npx verimu             # Scan + sync to platform
     npx verimu scan --fail-on HIGH                # Fail CI on HIGH+ vulns
+    npx verimu scan --group-name my-app           # Group projects with custom name
     npx verimu scan --context-lines 8             # Wider context around usage snippets
     npx verimu scan --cdx-version 1.5             # Specify CycloneDX version
     npx verimu scan --path ./backend --output ./reports/sbom.json
+    npx verimu scan --no-recursive                # Scan only root directory
+    npx verimu scan --exclude "legacy/*"          # Exclude legacy projects
 
   Supported ecosystems:
     npm (package-lock.json)         pip (requirements.txt)

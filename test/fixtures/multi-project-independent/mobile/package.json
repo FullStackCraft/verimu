@@ -1,0 +1,8 @@
+{
+  "name": "chat-mobile",
+  "version": "1.0.0",
+  "dependencies": {
+    "react-native": "0.73.0",
+    "lodash": "4.17.21"
+  }
+}

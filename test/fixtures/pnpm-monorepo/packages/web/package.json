@@ -1,0 +1,8 @@
+{
+  "name": "@pnpm-monorepo/web",
+  "version": "1.0.0",
+  "dependencies": {
+    "vue": "3.4.0",
+    "@pnpm-monorepo/shared": "workspace:*"
+  }
+}

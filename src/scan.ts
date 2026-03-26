@@ -163,6 +163,7 @@ export async function uploadToVerimu(
   const upsertRes = await client.upsertProject({
     name: projectName,
     ecosystem: report.project.ecosystem,
+    groupName: config.groupName,
   });
 
   const projectId = upsertRes.project.id;

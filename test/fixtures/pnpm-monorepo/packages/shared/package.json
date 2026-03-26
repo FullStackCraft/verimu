@@ -1,0 +1,7 @@
+{
+  "name": "@pnpm-monorepo/shared",
+  "version": "1.0.0",
+  "dependencies": {
+    "zod": "3.22.0"
+  }
+}

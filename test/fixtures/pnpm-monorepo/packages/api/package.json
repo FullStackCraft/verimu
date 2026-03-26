@@ -1,0 +1,8 @@
+{
+  "name": "@pnpm-monorepo/api",
+  "version": "1.0.0",
+  "dependencies": {
+    "fastify": "4.25.0",
+    "@pnpm-monorepo/shared": "workspace:*"
+  }
+}

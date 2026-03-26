@@ -18,6 +18,7 @@ export interface UpsertProjectResponse {
     ecosystem: string;
     repository_url: string | null;
     platform: string | null;
+    group_name: string | null;
   };
   created: boolean;
 }
@@ -81,6 +82,7 @@ export class VerimuApiClient {
     ecosystem: Ecosystem;
     repositoryUrl?: string;
     platform?: string;
+    groupName?: string;
   }): Promise<UpsertProjectResponse> {
     const res = await fetch(`${this.baseUrl}/api/projects/upsert`, {
       method: 'POST',
@@ -90,6 +92,7 @@ export class VerimuApiClient {
         ecosystem: this.mapEcosystem(opts.ecosystem),
         repository_url: opts.repositoryUrl ?? null,
         platform: opts.platform ?? null,
+        group_name: opts.groupName ?? null,
       }),
     });
 
