@@ -294,6 +294,8 @@ export interface VerimuConfig {
   skipCveCheck?: boolean;
   /** Optional context lines around usage snippets (default: 4, clamped to 0..20) */
   numContextLines?: number;
+  /** Optional group name to associate this project with others in the dashboard */
+  groupName?: string;
 }
 
 // ─── generateSbom() Input / Output ─────────────────────────────
@@ -367,4 +369,64 @@ export interface GenerateSwidTagResult {
   specVersion: string;
   /** ISO timestamp of generation */
   generatedAt: string;
+}
+
+// ─── Multi-Project / Recursive Discovery ────────────────────────
+
+/** Represents a discovered lockfile and its associated project */
+export interface DiscoveredProject {
+  /** Absolute path to the project directory */
+  projectPath: string;
+  /** Relative path from discovery root (for display/grouping) */
+  relativePath: string;
+  /** The lockfile that was found */
+  lockfile: {
+    name: string;
+    path: string;
+  };
+  /** Detected ecosystem */
+  ecosystem: Ecosystem;
+  /** Scanner that will handle this project */
+  scannerType: string;
+}
+
+/** Options for recursive discovery */
+export interface DiscoveryOptions {
+  /** Root path to start discovery from */
+  rootPath: string;
+  /** Glob patterns to exclude */
+  exclude?: string[];
+  /** Maximum directory depth to search (default: unlimited) */
+  maxDepth?: number;
+}
+
+/** Result of multi-project scan */
+export interface MultiProjectScanResult {
+  /** Total projects discovered */
+  totalDiscovered: number;
+  /** Projects successfully scanned */
+  successful: Array<{
+    project: DiscoveredProject;
+    report: VerimuReport;
+  }>;
+  /** Projects that failed to scan */
+  failed: Array<{
+    project: DiscoveredProject;
+    error: string;
+  }>;
+  /** Projects skipped (e.g., due to filters) */
+  skipped: Array<{
+    path: string;
+    reason: string;
+  }>;
+  /** Total scan duration */
+  durationMs: number;
+}
+
+/** Multi-project scan configuration */
+export interface MultiProjectConfig extends VerimuConfig {
+  /** Enable recursive discovery */
+  recursive?: boolean;
+  /** Exclude patterns */
+  exclude?: string[];
 }

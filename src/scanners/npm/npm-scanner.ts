@@ -75,14 +75,18 @@ export class NpmScanner implements DependencyScanner {
         // Skip the root package (empty string key)
         if (pkgPath === '') continue;
 
+        // Skip workspace packages (e.g., "packages/api", "apps/web")
+        // Only process entries under node_modules/
+        if (!pkgPath.startsWith('node_modules/')) continue;
+
+        // Skip link: true entries (workspace references in node_modules)
+        if (pkgInfo.link) continue;
+
         // Extract package name from the path
         // e.g., "node_modules/express" → "express"
         // e.g., "node_modules/@types/node" → "@types/node"
         const name = this.extractPackageName(pkgPath);
         if (!name || !pkgInfo.version) continue;
-
-        // Skip link: true entries (workspace references)
-        if (pkgInfo.link) continue;
 
         deps.push({
           name,

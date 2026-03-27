@@ -1,0 +1,8 @@
+{
+  "name": "@my-monorepo/api",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "4.18.2",
+    "@my-monorepo/shared": "workspace:*"
+  }
+}
