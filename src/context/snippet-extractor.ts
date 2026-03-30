@@ -43,6 +43,11 @@ export function buildSnippet(params: {
   const endLine = Math.min(lines.length || 1, centerLine + numContextLines);
   const code = lines.slice(startLine - 1, endLine).join('\n');
 
+  // 0-indexed offset of the matched line within the `code` string.
+  // Both tuple values are equal for single-line matches (all current match kinds).
+  const highlightOffset = centerLine - startLine;
+  const highlight: [number, number] = [highlightOffset, highlightOffset];
+
   return {
     filePath: relative(projectPath, filePath).split(sep).join('/'),
     startLine,
@@ -51,6 +56,7 @@ export function buildSnippet(params: {
     matchKind,
     calledSymbol,
     confidence,
+    highlight,
   };
 }
 
