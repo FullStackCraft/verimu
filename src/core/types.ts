@@ -150,6 +150,14 @@ export interface UsageSnippet {
   calledSymbol?: string;
   /** Confidence score in [0, 1] */
   confidence: number;
+  /**
+   * Which lines within `code` to highlight in the UI.
+   * Both values are 0-indexed offsets into the `code` string's lines
+   * (i.e. relative to `startLine`, not to the source file).
+   * Example: if startLine=6 and the match is on source line 10,
+   * highlight = [4, 4] (single-line) or [4, 6] (multi-line range).
+   */
+  highlight: [startOffset: number, endOffset: number];
 }
 
 /** Usage-context outcome for one vulnerability */
