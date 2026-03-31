@@ -46,6 +46,19 @@ export type {
 
 export type { UploadResult } from './scan.js';
 
+// ─── GitLab Integration ────────────────────────────────────────
+
+export { GitLabClient } from './gitlab/client.js';
+export { GitLabOrchestrator } from './gitlab/orchestrator.js';
+export { HtmlReporter } from './reporters/html.js';
+export type {
+  GitLabProject,
+  GitLabGroup,
+  GitLabScanConfig,
+  GitLabScanResult,
+  GitLabRepoScanResult,
+} from './gitlab/types.js';
+
 // ─── Errors ─────────────────────────────────────────────────────
 
 export {
