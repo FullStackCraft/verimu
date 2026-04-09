@@ -107,13 +107,28 @@ export class GitLabOrchestrator {
             ? ` (${disc.relativePath})`
             : '';
 
+          const uploadProjectName = discovered.length > 1 && disc.relativePath !== '.'
+            ? `${project.path_with_namespace}/${disc.relativePath}`
+            : project.path_with_namespace;
+          const safeArtifactSuffix = uploadProjectName
+            .replace(/[\\/:*?"<>|]/g, '-')
+            .replace(/\s+/g, '-')
+            .toLowerCase();
+          const sbomOutput = `${tempDir}/sbom.${safeArtifactSuffix}.cdx.json`;
+
           process.stdout.write(`    Scanning${subLabel}... `);
 
           try {
             const report = await scan({
               projectPath: disc.projectPath,
+              sbomOutput,
               skipCveCheck: config.skipCveCheck ?? false,
+              apiKey: config.apiKey,
+              apiBaseUrl: config.apiBaseUrl,
               groupName: config.groupName,
+              uploadProjectName,
+              repositoryUrl: project.web_url,
+              platform: 'gitlab',
             });
 
             const vulnCount = report.summary.totalVulnerabilities;
