@@ -90,15 +90,14 @@ export class GitHubOrchestrator {
 
         // Scan each discovered project within the repo
         const reports: VerimuReport[] = [];
+        const autoGroupName = this.getAutoGroupName(repo, discovered.length, config.groupName);
 
         for (const disc of discovered) {
           const subLabel = discovered.length > 1
             ? ` (${disc.relativePath})`
             : '';
 
-          const uploadProjectName = discovered.length > 1 && disc.relativePath !== '.'
-            ? `${repo.full_name}/${disc.relativePath}`
-            : repo.full_name;
+          const uploadProjectName = this.getUploadProjectName(repo, disc.relativePath, discovered.length);
           const safeArtifactSuffix = uploadProjectName
             .replace(/[\\/:*?"<>|]/g, '-')
             .replace(/\s+/g, '-')
@@ -114,7 +113,7 @@ export class GitHubOrchestrator {
               skipCveCheck: config.skipCveCheck ?? false,
               apiKey: config.apiKey,
               apiBaseUrl: config.apiBaseUrl,
-              groupName: config.groupName,
+              groupName: autoGroupName,
               uploadProjectName,
               repositoryUrl: repo.html_url,
               platform: 'github',
@@ -228,6 +227,32 @@ export class GitHubOrchestrator {
     }
 
     return { toScan, skipped };
+  }
+
+  private getUploadProjectName(
+    repo: GitHubRepo,
+    relativePath: string,
+    totalProjectsInRepo: number
+  ): string {
+    // For mono-repos, keep child project names concise and let groupName carry repo identity.
+    if (totalProjectsInRepo > 1) {
+      return relativePath === '.' ? repo.name : relativePath;
+    }
+
+    return repo.full_name;
+  }
+
+  private getAutoGroupName(
+    repo: GitHubRepo,
+    totalProjectsInRepo: number,
+    configuredGroupName?: string
+  ): string | undefined {
+    if (configuredGroupName) {
+      return configuredGroupName;
+    }
+
+    // Match monorepo semantics: auto-group only when multiple projects are discovered.
+    return totalProjectsInRepo > 1 ? repo.full_name : undefined;
   }
 
   // ─── Aggregation ────────────────────────────────────────────
