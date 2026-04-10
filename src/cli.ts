@@ -28,8 +28,10 @@ import { renderPlatformScan } from './reporters/platform.js';
 import { MultiProjectOrchestrator } from './discovery/index.js';
 import type { VerimuConfig, Severity, VerimuReport, MultiProjectScanResult } from './core/types.js';
 import { GitLabOrchestrator } from './gitlab/orchestrator.js';
+import { GitHubOrchestrator } from './github/orchestrator.js';
 import { HtmlReporter } from './reporters/html.js';
 import type { GitLabScanConfig } from './gitlab/types.js';
+import type { GitHubScanConfig, GitHubScanResult, GitHubRepoScanResult, GitHubRepo } from './github/types.js';
 
 // ─── Version & branding ─────────────────────────────────────────
 
@@ -63,7 +65,7 @@ function logError(msg: string) {
 // ─── Arg parsing (minimal, no deps) ────────────────────────────
 
 interface CliArgs {
-  command: 'scan' | 'generate-sbom' | 'gitlab' | 'help' | 'version';
+  command: 'scan' | 'generate-sbom' | 'gitlab' | 'github' | 'help' | 'version';
   projectPath: string;
   sbomOutput: string;
   failOnSeverity: Severity | null;
@@ -83,6 +85,11 @@ interface CliArgs {
   htmlOutput?: string;
   jsonOutput?: string;
   exclude?: string[];
+  // GitHub scanning
+  githubUrl?: string;
+  githubToken?: string;
+  githubProfile?: string;
+  githubOwnerOnly?: boolean;
 }
 
 export function parseArgs(argv: string[]): CliArgs {
@@ -102,7 +109,7 @@ export function parseArgs(argv: string[]): CliArgs {
     gitlabToken: undefined,
     gitlabGroups: undefined,
     excludeArchived: true,
-    excludeForks: false,
+    excludeForks: true,
     maxRepos: undefined,
     htmlOutput: undefined,
     jsonOutput: undefined,
@@ -120,10 +127,20 @@ export function parseArgs(argv: string[]): CliArgs {
       result.skipCveCheck = true;
     } else if (arg === 'gitlab') {
       result.command = 'gitlab';
+    } else if (arg === 'github') {
+      result.command = 'github';
     } else if (arg === '--url') {
-      result.gitlabUrl = args[++i] ?? '';
+      const urlVal = args[++i] ?? '';
+      result.gitlabUrl = urlVal;
+      result.githubUrl = urlVal;
     } else if (arg === '--token') {
-      result.gitlabToken = args[++i] ?? '';
+      const tokenVal = args[++i] ?? '';
+      result.gitlabToken = tokenVal;
+      result.githubToken = tokenVal;
+    } else if (arg === '--profile') {
+      result.githubProfile = args[++i] ?? '';
+    } else if (arg === '--owner-only') {
+      result.githubOwnerOnly = true;
     } else if (arg === '--groups') {
       const val = args[++i] ?? '';
       result.gitlabGroups = val.split(',').map(g => g.trim());
@@ -131,8 +148,8 @@ export function parseArgs(argv: string[]): CliArgs {
       result.excludeArchived = true;
     } else if (arg === '--include-archived') {
       result.excludeArchived = false;
-    } else if (arg === '--no-forks') {
-      result.excludeForks = true;
+    } else if (arg === '--include-forks') {
+      result.excludeForks = false;
     } else if (arg === '--max-repos') {
       result.maxRepos = Number.parseInt(args[++i] ?? '0', 10);
     } else if (arg === '--html-output' || arg === '--html') {
@@ -230,6 +247,13 @@ async function main(): Promise<void> {
   if (args.command === "gitlab") {
     console.log(BRAND);
     await runGitLabScan(args);
+    return;
+  }
+
+  // Handle github command
+  if (args.command === "github") {
+    console.log(BRAND);
+    await runGitHubScan(args);
     return;
   }
 
@@ -361,7 +385,7 @@ async function runGitLabScan(args: CliArgs): Promise<void> {
     token,
     groups: args.gitlabGroups,
     excludeArchived: args.excludeArchived ?? true,
-    excludeForks: args.excludeForks ?? false,
+    excludeForks: args.excludeForks ?? true,
     maxRepos: args.maxRepos,
     htmlOutput: args.htmlOutput,
     jsonOutput: args.jsonOutput,
@@ -394,6 +418,125 @@ async function runGitLabScan(args: CliArgs): Promise<void> {
   if (result.summary.totalVulnerabilities > 0 && args.failOnSeverity) {
     process.exit(1);
   }
+}
+
+async function runGitHubScan(args: CliArgs): Promise<void> {
+  const baseUrl = args.githubUrl || process.env.GITHUB_URL || 'https://github.com';
+  const token = args.githubToken || process.env.GITHUB_TOKEN;
+  const profile = args.githubProfile || process.env.GITHUB_PROFILE;
+
+  if (!profile) {
+    logError('GitHub profile required. Use --profile <org-or-user> or set GITHUB_PROFILE');
+    log('  Example: npx verimu github --profile octokit');
+    log('  Example: npx verimu github --profile https://github.com/my-org');
+    process.exit(2);
+  }
+
+  if (!token) {
+    logWarn('No GitHub token provided. Only public repos will be scanned (60 API requests/hour).');
+    log('  Use --token or set GITHUB_TOKEN for private repo access (5,000 requests/hour).');
+    console.log('');
+  }
+
+  const config: GitHubScanConfig = {
+    baseUrl,
+    profile,
+    token: token || undefined,
+    ownerOnly: args.githubOwnerOnly ?? false,
+    excludeArchived: args.excludeArchived ?? true,
+    excludeForks: args.excludeForks ?? true,
+    maxRepos: args.maxRepos,
+    htmlOutput: args.htmlOutput,
+    jsonOutput: args.jsonOutput,
+    skipCveCheck: args.skipCveCheck,
+    apiKey: process.env.VERIMU_API_KEY,
+    apiBaseUrl: process.env.VERIMU_API_URL,
+    groupName: args.groupName,
+  };
+
+  const orchestrator = new GitHubOrchestrator();
+  const result = await orchestrator.scanProfile(config);
+
+  // Write HTML report (reuse existing HtmlReporter by adapting result shape)
+  if (args.htmlOutput) {
+    const reporter = new HtmlReporter();
+    // Adapt GitHub result to the format expected by HtmlReporter
+    const adapted = adaptGitHubResultForHtml(result);
+    const html = reporter.generate(adapted);
+    const { writeFile: wf } = await import('fs/promises');
+    await wf(args.htmlOutput, html, 'utf-8');
+    logSuccess('HTML report: ' + args.htmlOutput);
+  }
+
+  // Write JSON report
+  if (args.jsonOutput) {
+    const { writeFile: wf } = await import('fs/promises');
+    await wf(args.jsonOutput, JSON.stringify(result, null, 2), 'utf-8');
+    logSuccess('JSON report: ' + args.jsonOutput);
+  }
+
+  // Exit with error if vulnerabilities found
+  if (result.summary.totalVulnerabilities > 0 && args.failOnSeverity) {
+    process.exit(1);
+  }
+}
+
+/**
+ * Adapts a GitHubScanResult to the GitLabScanResult shape
+ * so we can reuse the existing HtmlReporter.
+ *
+ * The HTML reporter only reads: instanceUrl, summary, topVulnerabilities,
+ * scannedRepos, scannedAt, durationMs — all of which are structurally
+ * compatible except scannedRepos[].project vs scannedRepos[].repo.
+ */
+function adaptGitHubResultForHtml(result: GitHubScanResult): import('./gitlab/types.js').GitLabScanResult {
+  const toGitLabProject = (repo: GitHubRepo) => ({
+    id: repo.id,
+    name: repo.name,
+    name_with_namespace: repo.full_name,
+    path: repo.name,
+    path_with_namespace: repo.full_name,
+    description: null,
+    http_url_to_repo: repo.clone_url,
+    ssh_url_to_repo: '',
+    web_url: repo.html_url,
+    default_branch: repo.default_branch,
+    archived: repo.archived,
+    empty_repo: false,
+    visibility: repo.private ? 'private' as const : 'public' as const,
+    last_activity_at: '',
+    namespace: {
+      id: 0,
+      name: repo.owner.login,
+      path: repo.owner.login,
+      kind: (repo.owner.type === 'Organization' ? 'group' : 'user') as 'group' | 'user',
+      full_path: repo.owner.login,
+    },
+  });
+
+  return {
+    instanceUrl: `${result.instanceUrl}/${result.profile}`,
+    totalReposDiscovered: result.totalReposDiscovered,
+    scannedRepos: result.scannedRepos.map((r: GitHubRepoScanResult) => ({
+      project: toGitLabProject(r.repo),
+      reports: r.reports,
+      hasLockfile: r.hasLockfile,
+      error: r.error,
+      durationMs: r.durationMs,
+    })),
+    skippedRepos: result.skippedRepos.map((s: { repo: GitHubRepo; reason: string }) => ({
+      project: toGitLabProject(s.repo),
+      reason: s.reason,
+    })),
+    failedRepos: result.failedRepos.map((f: { repo: GitHubRepo; error: string }) => ({
+      project: toGitLabProject(f.repo),
+      error: f.error,
+    })),
+    summary: result.summary,
+    topVulnerabilities: result.topVulnerabilities,
+    scannedAt: result.scannedAt,
+    durationMs: result.durationMs,
+  };
 }
 
 function printMultiProjectSummary(result: MultiProjectScanResult): void {
@@ -459,10 +602,28 @@ function printHelp(): void {
     --token <token>        Personal access token (or GITLAB_TOKEN env)
     --groups <g1,g2>       Only scan repos in these groups
     --include-archived     Include archived repos (excluded by default)
-    --no-forks             Exclude forked repos
+    --include-forks        Include forked repos (excluded by default)
     --max-repos <n>        Limit number of repos to scan
     --html-output <file>   Write HTML report (e.g., ./report.html)
     --json-output <file>   Write JSON aggregate report
+
+  GitHub scanning:
+    verimu github [options]       Scan repos for a GitHub org or user
+
+  GitHub options:
+    --profile <handle|url> GitHub org/user to scan (required)
+    --url <url>            GitHub base URL (default: https://github.com, for GHES)
+    --token <token>        GitHub PAT (or GITHUB_TOKEN env). Without token: public
+                           repos only, 60 API requests/hour. With token: private +
+                           public repos, 5,000 requests/hour.
+    --owner-only           For user profiles, list only owner repos (default: all)
+    --include-archived     Include archived repos (excluded by default)
+    --include-forks        Include forked repos (excluded by default)
+    --max-repos <n>        Limit number of repos to scan
+    --html-output <file>   Write HTML report
+    --json-output <file>   Write JSON aggregate report
+    --skip-cve             Skip CVE vulnerability checking
+    --group-name <name>    Group name for Verimu platform
 
   Options:
     --path, -p <dir>       Project directory to scan (default: .)
@@ -485,6 +646,8 @@ function printHelp(): void {
   Environment:
     VERIMU_API_KEY         API key for Verimu platform (from app.verimu.com)
     VERIMU_API_URL         Custom API URL (default: https://api.verimu.com)
+    GITHUB_TOKEN           GitHub personal access token
+    GITHUB_URL             GitHub base URL for GHES (default: https://github.com)
 
   Examples:
     npx verimu                                    # Scan all projects recursively
@@ -501,6 +664,13 @@ function printHelp(): void {
     GITLAB_TOKEN=xxx npx verimu gitlab --url https://git.example.com --html report.html
     npx verimu gitlab --url https://git.example.com --token xxx --groups myteam
     npx verimu gitlab --url https://git.example.com --token xxx --max-repos 5
+
+  GitHub examples:
+    npx verimu github --profile octokit --max-repos 5 --json-output report.json
+    npx verimu github --profile Saksham0170 --owner-only
+    GITHUB_TOKEN=ghp_xxx npx verimu github --profile my-org --html-output report.html
+    npx verimu github --profile https://github.com/my-org --token ghp_xxx
+    npx verimu github --url https://github.company.com --profile team --token xxx
 
   Supported ecosystems:
     npm (package-lock.json)         pip (requirements.txt)
