@@ -20,12 +20,16 @@
  */
 
 import { resolve } from 'path';
+import { writeFile } from 'fs/promises';
 import { createRequire } from 'module';
 import { scan, shouldFailCi, uploadToVerimu } from './scan.js';
 import { ConsoleReporter } from './reporters/console.js';
 import { renderPlatformScan } from './reporters/platform.js';
 import { MultiProjectOrchestrator } from './discovery/index.js';
 import type { VerimuConfig, Severity, VerimuReport, MultiProjectScanResult } from './core/types.js';
+import { GitLabOrchestrator } from './gitlab/orchestrator.js';
+import { HtmlReporter } from './reporters/html.js';
+import type { GitLabScanConfig } from './gitlab/types.js';
 
 // ─── Version & branding ─────────────────────────────────────────
 
@@ -59,7 +63,7 @@ function logError(msg: string) {
 // ─── Arg parsing (minimal, no deps) ────────────────────────────
 
 interface CliArgs {
-  command: 'scan' | 'generate-sbom' | 'help' | 'version';
+  command: 'scan' | 'generate-sbom' | 'gitlab' | 'help' | 'version';
   projectPath: string;
   sbomOutput: string;
   failOnSeverity: Severity | null;
@@ -69,6 +73,15 @@ interface CliArgs {
   contextLines?: number;
   groupName?: string;
   recursive: boolean;  // true by default, use --no-recursive to disable
+  // GitLab scanning
+  gitlabUrl?: string;
+  gitlabToken?: string;
+  gitlabGroups?: string[];
+  excludeArchived?: boolean;
+  excludeForks?: boolean;
+  maxRepos?: number;
+  htmlOutput?: string;
+  jsonOutput?: string;
   exclude?: string[];
 }
 
@@ -85,6 +98,14 @@ export function parseArgs(argv: string[]): CliArgs {
     contextLines: undefined,
     groupName: undefined,
     recursive: true,  // Recursive by default
+    gitlabUrl: undefined,
+    gitlabToken: undefined,
+    gitlabGroups: undefined,
+    excludeArchived: true,
+    excludeForks: false,
+    maxRepos: undefined,
+    htmlOutput: undefined,
+    jsonOutput: undefined,
     exclude: undefined,
   };
 
@@ -97,6 +118,27 @@ export function parseArgs(argv: string[]): CliArgs {
     } else if (arg === 'generate-sbom' || arg === 'sbom') {
       result.command = 'generate-sbom';
       result.skipCveCheck = true;
+    } else if (arg === 'gitlab') {
+      result.command = 'gitlab';
+    } else if (arg === '--url') {
+      result.gitlabUrl = args[++i] ?? '';
+    } else if (arg === '--token') {
+      result.gitlabToken = args[++i] ?? '';
+    } else if (arg === '--groups') {
+      const val = args[++i] ?? '';
+      result.gitlabGroups = val.split(',').map(g => g.trim());
+    } else if (arg === '--no-archived') {
+      result.excludeArchived = true;
+    } else if (arg === '--include-archived') {
+      result.excludeArchived = false;
+    } else if (arg === '--no-forks') {
+      result.excludeForks = true;
+    } else if (arg === '--max-repos') {
+      result.maxRepos = Number.parseInt(args[++i] ?? '0', 10);
+    } else if (arg === '--html-output' || arg === '--html') {
+      result.htmlOutput = args[++i] ?? './verimu-report.html';
+    } else if (arg === '--json-output') {
+      result.jsonOutput = args[++i] ?? './verimu-report.json';
     } else if (arg === 'help' || arg === '--help' || arg === '-h') {
       result.command = 'help';
     } else if (arg === 'version' || arg === '--version' || arg === '-v') {
@@ -181,6 +223,13 @@ async function main(): Promise<void> {
 
   if (args.command === 'help') {
     printHelp();
+    return;
+  }
+
+  // Handle gitlab command
+  if (args.command === "gitlab") {
+    console.log(BRAND);
+    await runGitLabScan(args);
     return;
   }
 
@@ -293,6 +342,60 @@ async function main(): Promise<void> {
   }
 }
 
+async function runGitLabScan(args: CliArgs): Promise<void> {
+  const url = args.gitlabUrl || process.env.GITLAB_URL || process.env.VERIMU_GITLAB_URL;
+  const token = args.gitlabToken || process.env.GITLAB_TOKEN || process.env.VERIMU_GITLAB_TOKEN;
+
+  if (!url) {
+    logError('GitLab URL required. Use --url or set GITLAB_URL / VERIMU_GITLAB_URL');
+    process.exit(2);
+  }
+
+  if (!token) {
+    logError('GitLab token required. Use --token or set GITLAB_TOKEN / VERIMU_GITLAB_TOKEN');
+    process.exit(2);
+  }
+
+  const config: GitLabScanConfig = {
+    url,
+    token,
+    groups: args.gitlabGroups,
+    excludeArchived: args.excludeArchived ?? true,
+    excludeForks: args.excludeForks ?? false,
+    maxRepos: args.maxRepos,
+    htmlOutput: args.htmlOutput,
+    jsonOutput: args.jsonOutput,
+    skipCveCheck: args.skipCveCheck,
+    apiKey: process.env.VERIMU_API_KEY,
+    apiBaseUrl: process.env.VERIMU_API_URL,
+    groupName: args.groupName,
+  };
+
+  const orchestrator = new GitLabOrchestrator();
+  const result = await orchestrator.scanInstance(config);
+
+  // Write HTML report
+  if (args.htmlOutput) {
+    const reporter = new HtmlReporter();
+    const html = reporter.generate(result);
+    const { writeFile: wf } = await import('fs/promises');
+    await wf(args.htmlOutput, html, 'utf-8');
+    logSuccess('HTML report: ' + args.htmlOutput);
+  }
+
+  // Write JSON report
+  if (args.jsonOutput) {
+    const { writeFile: wf } = await import('fs/promises');
+    await wf(args.jsonOutput, JSON.stringify(result, null, 2), 'utf-8');
+    logSuccess('JSON report: ' + args.jsonOutput);
+  }
+
+  // Exit with error if vulnerabilities found
+  if (result.summary.totalVulnerabilities > 0 && args.failOnSeverity) {
+    process.exit(1);
+  }
+}
+
 function printMultiProjectSummary(result: MultiProjectScanResult): void {
   console.log('\n' + '─'.repeat(60));
   console.log('Multi-Project Scan Summary');
@@ -348,6 +451,19 @@ function printHelp(): void {
     verimu help                     Show this help
     verimu version                  Show version
 
+  GitLab scanning:
+    verimu gitlab [options]       Scan all repos on a GitLab instance
+
+  GitLab options:
+    --url <url>            GitLab instance URL (or GITLAB_URL env)
+    --token <token>        Personal access token (or GITLAB_TOKEN env)
+    --groups <g1,g2>       Only scan repos in these groups
+    --include-archived     Include archived repos (excluded by default)
+    --no-forks             Exclude forked repos
+    --max-repos <n>        Limit number of repos to scan
+    --html-output <file>   Write HTML report (e.g., ./report.html)
+    --json-output <file>   Write JSON aggregate report
+
   Options:
     --path, -p <dir>       Project directory to scan (default: .)
     --output, -o <file>    CycloneDX output path (SPDX/SWID are written alongside it)
@@ -380,6 +496,11 @@ function printHelp(): void {
     npx verimu scan --path ./backend --output ./reports/sbom.json
     npx verimu scan --no-recursive                # Scan only root directory
     npx verimu scan --exclude "legacy/*"          # Exclude legacy projects
+
+  GitLab examples:
+    GITLAB_TOKEN=xxx npx verimu gitlab --url https://git.example.com --html report.html
+    npx verimu gitlab --url https://git.example.com --token xxx --groups myteam
+    npx verimu gitlab --url https://git.example.com --token xxx --max-repos 5
 
   Supported ecosystems:
     npm (package-lock.json)         pip (requirements.txt)

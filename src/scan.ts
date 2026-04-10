@@ -156,13 +156,15 @@ export async function uploadToVerimu(
 
   const client = new VerimuApiClient(config.apiKey, config.apiBaseUrl);
 
-  // Derive project name from the directory
-  const projectName = basename(config.projectPath);
+  // Derive project name from the directory unless explicitly provided.
+  const projectName = config.uploadProjectName ?? basename(config.projectPath);
 
   // 1. Upsert project
   const upsertRes = await client.upsertProject({
     name: projectName,
     ecosystem: report.project.ecosystem,
+    repositoryUrl: config.repositoryUrl,
+    platform: config.platform,
     groupName: config.groupName,
   });
 

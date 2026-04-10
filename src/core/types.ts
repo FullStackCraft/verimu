@@ -304,6 +304,12 @@ export interface VerimuConfig {
   numContextLines?: number;
   /** Optional group name to associate this project with others in the dashboard */
   groupName?: string;
+  /** Optional explicit project name to use for backend upsert/upload */
+  uploadProjectName?: string;
+  /** Optional repository URL to associate with this project in backend */
+  repositoryUrl?: string;
+  /** Optional source platform label (e.g., gitlab, github, bitbucket) */
+  platform?: CiProvider;
 }
 
 // ─── generateSbom() Input / Output ─────────────────────────────
