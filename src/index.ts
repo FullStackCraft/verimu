@@ -59,6 +59,18 @@ export type {
   GitLabRepoScanResult,
 } from './gitlab/types.js';
 
+// ─── GitHub Integration ────────────────────────────────────────
+
+export { GitHubClient, parseProfile } from './github/client.js';
+export { GitHubOrchestrator } from './github/orchestrator.js';
+export type {
+  GitHubRepo,
+  GitHubUser,
+  GitHubScanConfig,
+  GitHubScanResult,
+  GitHubRepoScanResult,
+} from './github/types.js';
+
 // ─── Errors ─────────────────────────────────────────────────────
 
 export {
